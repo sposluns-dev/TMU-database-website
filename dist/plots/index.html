@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Observable Plot Examples</title>
+  <style>
+    body { font-family: sans-serif; max-width: 960px; margin: 40px auto; padding: 0 20px; }
+    h1 { border-bottom: 2px solid #333; padding-bottom: 8px; }
+    h2 { margin-top: 48px; color: #333; }
+    h3 { color: #555; margin-top: 32px; }
+    .chart { margin: 16px 0 32px; }
+    pre { background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 13px; }
+    nav { margin-bottom: 32px; }
+    nav a { margin-right: 16px; color: #0066cc; }
+  </style>
+</head>
+<body>
+  <h1>Observable Plot Examples</h1>
+  <p>All charts use Observable Plot directly with plain JSON data. Swap in any JSON array of objects.</p>
+
+  <nav>
+    <a href="#bar">Bar</a>
+    <a href="#line-area">Line / Area</a>
+    <a href="#dot">Dot / Scatter</a>
+    <a href="#pie-donut">Pie / Donut</a>
+    <a href="#histogram">Histogram</a>
+    <a href="#rect">Rect</a>
+    <a href="#treemap">Treemap / Circle Pack</a>
+    <a href="#text-tick-tip">Text / Tick / Tip</a>
+    <a href="#multiy-facet">Multi-Y / Faceted</a>
+    <a href="#map">Canada Map</a>
+  </nav>
+
+  <!-- ── BAR ─────────────────────────────────────────────────────────── -->
+  <h2 id="bar">Bar Charts</h2>
+
+  <h3>barX — horizontal bars</h3>
+  <div class="chart" id="barX"></div>
+  <pre>Plot.barX(data, { x: "value", y: "category", fill: "category" }).plot()</pre>
+
+  <h3>barY — vertical bars</h3>
+  <div class="chart" id="barY"></div>
+  <pre>Plot.barY(data, { x: "category", y: "value", fill: "category" }).plot()</pre>
+
+  <h3>groupedBar — bars grouped by series</h3>
+  <div class="chart" id="groupedBar"></div>
+  <pre>Plot.barY(data, Plot.groupX({ y: "sum" }, { x: "category", y: "value", fill: "series" })).plot()</pre>
+
+  <h3>percentageBarY — stacked 100% bar</h3>
+  <div class="chart" id="percentageBarY"></div>
+  <pre>Plot.barY(data, Plot.stackY(Plot.normalizeY("sum"), { x: "category", y: "value", fill: "series" })).plot()</pre>
+
+  <!-- ── LINE / AREA ───────────────────────────────────────────────── -->
+  <h2 id="line-area">Line / Area</h2>
+
+  <h3>line</h3>
+  <div class="chart" id="line"></div>
+  <pre>Plot.lineY(data, { x: "date", y: "value", stroke: "series" }).plot()</pre>
+
+  <h3>area</h3>
+  <div class="chart" id="area"></div>
+  <pre>Plot.areaY(data, { x: "date", y: "value", fill: "series", fillOpacity: 0.4 }).plot()</pre>
+
+  <!-- ── DOT / SCATTER ────────────────────────────────────────────── -->
+  <h2 id="dot">Dot / Scatter</h2>
+
+  <h3>dot</h3>
+  <div class="chart" id="dot"></div>
+  <pre>Plot.dot(data, { x: "x", y: "y", fill: "series", r: "size", opacity: 0.6 }).plot()</pre>
+
+  <!-- ── PIE / DONUT ──────────────────────────────────────────────── -->
+  <h2 id="pie-donut">Pie / Donut</h2>
+
+  <h3>pie</h3>
+  <div class="chart" id="pie"></div>
+  <pre>
+// Observable Plot uses arc marks for pie charts
+Plot.plot({
+  marks: [Plot.arc(data, { theta: "value", fill: "category" })],
+  width: 300, height: 300
+})</pre>
+
+  <h3>donut</h3>
+  <div class="chart" id="donut"></div>
+  <pre>Plot.plot({ marks: [Plot.arc(data, { theta: "value", fill: "category", innerRadius: 60 })], width: 300, height: 300 })</pre>
+
+  <!-- ── HISTOGRAM ─────────────────────────────────────────────────── -->
+  <h2 id="histogram">Histogram</h2>
+
+  <h3>histogram (binned)</h3>
+  <div class="chart" id="histogram"></div>
+  <pre>Plot.rectY(data, Plot.binX({ y: "count" }, { x: "value" })).plot()</pre>
+
+  <h3>histogramX (horizontal)</h3>
+  <div class="chart" id="histogramX"></div>
+  <pre>Plot.rectX(data, Plot.binY({ x: "count" }, { y: "value" })).plot()</pre>
+
+  <!-- ── RECT ──────────────────────────────────────────────────────── -->
+  <h2 id="rect">Rect</h2>
+
+  <h3>rectY</h3>
+  <div class="chart" id="rectY"></div>
+  <pre>Plot.rectY(data, { x1: "x1", x2: "x2", y: "value", fill: "category" }).plot()</pre>
+
+  <h3>rectX</h3>
+  <div class="chart" id="rectX"></div>
+  <pre>Plot.rectX(data, { y1: "y1", y2: "y2", x: "value", fill: "category" }).plot()</pre>
+
+  <h3>rectY faceted</h3>
+  <div class="chart" id="rectYfacet"></div>
+  <pre>Plot.rectY(data, Plot.binX({ y: "count" }, { x: "value", fx: "category" })).plot()</pre>
+
+  <!-- ── TREEMAP / CIRCLE PACK ─────────────────────────────────────── -->
+  <h2 id="treemap">Treemap / Circle Pack</h2>
+
+  <h3>treemap</h3>
+  <div class="chart" id="treemap"></div>
+  <pre>
+// Treemap uses d3-hierarchy — build the hierarchy then render rects
+Plot.plot({
+  marks: [
+    Plot.rect(leaves, { x1: d => d.x0, x2: d => d.x1, y1: d => d.y0, y2: d => d.y1, fill: d => d.data.category }),
+    Plot.text(leaves, { x: d => (d.x0+d.x1)/2, y: d => (d.y0+d.y1)/2, text: d => d.data.label })
+  ]
+})</pre>
+
+  <h3>circlePack</h3>
+  <div class="chart" id="circlePack"></div>
+  <pre>
+// Circle pack uses d3.pack() — render as dots
+Plot.dot(nodes, { x: d => d.x, y: d => d.y, r: d => d.r, fill: d => d.data.category, opacity: 0.7 }).plot()</pre>
+
+  <!-- ── TEXT / TICK / TIP ─────────────────────────────────────────── -->
+  <h2 id="text-tick-tip">Text / Tick / Tip</h2>
+
+  <h3>text labels on a chart</h3>
+  <div class="chart" id="textMark"></div>
+  <pre>
+Plot.plot({
+  marks: [
+    Plot.barY(data, { x: "category", y: "value", fill: "steelblue" }),
+    Plot.text(data, { x: "category", y: "value", text: d => d.value, dy: -6 })
+  ]
+})</pre>
+
+  <h3>tickX</h3>
+  <div class="chart" id="tickX"></div>
+  <pre>Plot.tickX(data, { x: "value", stroke: "category" }).plot()</pre>
+
+  <h3>tip (tooltip on hover)</h3>
+  <div class="chart" id="tipMark"></div>
+  <pre>
+Plot.plot({
+  marks: [
+    Plot.dot(data, { x: "x", y: "y", fill: "series" }),
+    Plot.tip(data, Plot.pointer({ x: "x", y: "y", title: d => `${d.label}: ${d.y}` }))
+  ]
+})</pre>
+
+  <!-- ── MULTI-Y / FACETED ─────────────────────────────────────────── -->
+  <h2 id="multiy-facet">Multi-Y / Faceted</h2>
+
+  <h3>multiY — multiple y series on one chart</h3>
+  <div class="chart" id="multiY"></div>
+  <pre>
+Plot.plot({
+  marks: [
+    Plot.lineY(data, { x: "date", y: "value1", stroke: "steelblue" }),
+    Plot.lineY(data, { x: "date", y: "value2", stroke: "orange" })
+  ]
+})</pre>
+
+  <h3>faceted — small multiples by category</h3>
+  <div class="chart" id="facet"></div>
+  <pre>Plot.barY(data, { x: "date", y: "value", fill: "series", fx: "series" }).plot()</pre>
+
+  <!-- ── CANADA MAP ────────────────────────────────────────────────── -->
+  <h2 id="map">Canada Map</h2>
+
+  <h3>provinces — basic outline</h3>
+  <div class="chart" id="canadaMap"></div>
+  <pre>
+const provinces = topojson.feature(topo, topo.objects.provinces);
+const provincemesh = topojson.mesh(topo, topo.objects.provinces);
+Plot.plot({
+  projection: "identity",
+  marks: [
+    Plot.geo(nation, { fill: "#ddd" }),
+    Plot.geo(provincemesh, { stroke: "white" }),
+  ]
+})</pre>
+
+  <h3>provinces — filled by name with tooltip</h3>
+  <div class="chart" id="canadaMapFilled"></div>
+  <pre>
+Plot.plot({
+  projection: "identity",
+  marks: [
+    Plot.geo(provinces, { fill: d => d.properties.NAME, tip: true,
+      title: d => d.properties.NAME }),
+    Plot.geo(provincemesh, { stroke: "white", strokeWidth: 0.5 })
+  ]
+})</pre>
+
+  <script type="module">
+    import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+    import * as topojson from "https://cdn.jsdelivr.net/npm/topojson-client@3/+esm";
+
+    // ── Sample data ──────────────────────────────────────────────────
+    const categories = ["A", "B", "C", "D", "E"];
+    const series = ["X", "Y"];
+
+    const barData = categories.map(c => ({ category: c, value: Math.round(Math.random() * 100 + 10) }));
+    const groupedData = categories.flatMap(c => series.map(s => ({ category: c, series: s, value: Math.round(Math.random() * 80 + 10) })));
+    const timeData = d3.range(24).map(i => ({ date: new Date(2017, i % 12, 1 + i), value: Math.round(Math.random() * 50 + 20), series: i < 12 ? "X" : "Y" }));
+    const scatterData = d3.range(60).map(() => ({ x: Math.random() * 100, y: Math.random() * 100, series: series[Math.floor(Math.random() * 2)], size: Math.random() * 10 + 2, label: "point" }));
+    const pieData = categories.map(c => ({ category: c, value: Math.round(Math.random() * 80 + 20) }));
+    const numericData = d3.range(200).map(() => ({ value: d3.randomNormal(50, 15)() }));
+    const rectData = categories.map((c, i) => ({ category: c, x1: i * 20, x2: i * 20 + 15, y1: 0, y2: Math.random() * 80 + 10, value: Math.random() * 80 + 10 }));
+
+    // ── Render helpers ───────────────────────────────────────────────
+    const mount = (id, chart) => {
+      const el = document.getElementById(id);
+      if (el) el.appendChild(chart);
+    };
+
+    // ── Bar ──────────────────────────────────────────────────────────
+    mount("barX", Plot.plot({ marks: [Plot.barX(barData, { x: "value", y: "category", fill: "category" })], marginLeft: 40 }));
+    mount("barY", Plot.plot({ marks: [Plot.barY(barData, { x: "category", y: "value", fill: "category" })] }));
+    mount("groupedBar", Plot.plot({ marks: [Plot.barY(groupedData, Plot.groupX({ y: "sum" }, { x: "category", y: "value", fill: "series" }))] }));
+    mount("percentageBarY", Plot.plot({ marks: [Plot.barY(groupedData, Plot.stackY(Plot.normalizeY("sum"), { x: "category", y: "value", fill: "series" }))] }));
+
+    // ── Line / Area ──────────────────────────────────────────────────
+    mount("line", Plot.plot({ marks: [Plot.lineY(timeData, { x: "date", y: "value", stroke: "series" })], x: { type: "utc" } }));
+    mount("area", Plot.plot({ marks: [Plot.areaY(timeData, { x: "date", y: "value", fill: "series", fillOpacity: 0.4 }), Plot.lineY(timeData, { x: "date", y: "value", stroke: "series" })], x: { type: "utc" } }));
+
+    // ── Dot ──────────────────────────────────────────────────────────
+    mount("dot", Plot.plot({ marks: [Plot.dot(scatterData, { x: "x", y: "y", fill: "series", r: "size", opacity: 0.6 })] }));
+
+    // ── Pie / Donut ──────────────────────────────────────────────────
+    mount("pie", Plot.plot({ marks: [Plot.arc(pieData, { theta: "value", fill: "category" })], width: 300, height: 300 }));
+    mount("donut", Plot.plot({ marks: [Plot.arc(pieData, { theta: "value", fill: "category", innerRadius: 60 })], width: 300, height: 300 }));
+
+    // ── Histogram ────────────────────────────────────────────────────
+    mount("histogram", Plot.plot({ marks: [Plot.rectY(numericData, Plot.binX({ y: "count" }, { x: "value" })), Plot.ruleY([0])] }));
+    mount("histogramX", Plot.plot({ marks: [Plot.rectX(numericData, Plot.binY({ x: "count" }, { y: "value" })), Plot.ruleX([0])] }));
+
+    // ── Rect ─────────────────────────────────────────────────────────
+    mount("rectY", Plot.plot({ marks: [Plot.rectY(rectData, { x1: "x1", x2: "x2", y1: 0, y2: "value", fill: "category" })] }));
+    mount("rectX", Plot.plot({ marks: [Plot.rectX(rectData, { y1: "x1", y2: "x2", x1: 0, x2: "value", fill: "category" })] }));
+    mount("rectYfacet", Plot.plot({ marks: [Plot.rectY(numericData.map((d, i) => ({ ...d, category: i % 2 === 0 ? "Even" : "Odd" })), Plot.binX({ y: "count" }, { x: "value", fx: "category" })), Plot.ruleY([0])] }));
+
+    // ── Treemap ──────────────────────────────────────────────────────
+    const treeData = { name: "root", children: pieData.map(d => ({ ...d, label: d.category })) };
+    const treemapLayout = d3.treemap().size([600, 300]).padding(2);
+    const root = treemapLayout(d3.hierarchy(treeData).sum(d => d.value));
+    const leaves = root.leaves();
+    mount("treemap", Plot.plot({
+      width: 600, height: 300, axis: null,
+      marks: [
+        Plot.rect(leaves, { x1: d => d.x0, x2: d => d.x1, y1: d => d.y0, y2: d => d.y1, fill: d => d.data.category }),
+        Plot.text(leaves, { x: d => (d.x0 + d.x1) / 2, y: d => (d.y0 + d.y1) / 2, text: d => d.data.label, fill: "white", fontWeight: "bold" })
+      ]
+    }));
+
+    // ── Circle Pack ──────────────────────────────────────────────────
+    const packLayout = d3.pack().size([400, 400]).padding(4);
+    const packRoot = packLayout(d3.hierarchy(treeData).sum(d => d.value));
+    const packNodes = packRoot.descendants().filter(d => d.depth > 0);
+    mount("circlePack", Plot.plot({
+      width: 400, height: 400, axis: null,
+      marks: [
+        Plot.dot(packNodes, { x: d => d.x, y: d => d.y, r: d => d.r, fill: d => d.data.category, opacity: 0.7 }),
+        Plot.text(packNodes, { x: d => d.x, y: d => d.y, text: d => d.data.label, fontSize: 11 })
+      ]
+    }));
+
+    // ── Text / Tick / Tip ────────────────────────────────────────────
+    mount("textMark", Plot.plot({
+      marks: [
+        Plot.barY(barData, { x: "category", y: "value", fill: "steelblue" }),
+        Plot.text(barData, { x: "category", y: "value", text: d => d.value, dy: -8, fontWeight: "bold" })
+      ]
+    }));
+    mount("tickX", Plot.plot({ marks: [Plot.tickX(barData, { x: "value", stroke: "category", strokeWidth: 2 })], marginLeft: 40 }));
+    mount("tipMark", Plot.plot({
+      marks: [
+        Plot.dot(scatterData, { x: "x", y: "y", fill: "series", opacity: 0.6 }),
+        Plot.tip(scatterData, Plot.pointer({ x: "x", y: "y", title: d => `(${d.x.toFixed(1)}, ${d.y.toFixed(1)})` }))
+      ]
+    }));
+
+    // ── Multi-Y / Faceted ────────────────────────────────────────────
+    const multiData = d3.range(20).map(i => ({ date: new Date(2017, i % 12, 1), value1: Math.random() * 50 + 20, value2: Math.random() * 30 + 10 }));
+    mount("multiY", Plot.plot({
+      marks: [
+        Plot.lineY(multiData, { x: "date", y: "value1", stroke: "steelblue" }),
+        Plot.lineY(multiData, { x: "date", y: "value2", stroke: "orange" })
+      ],
+      x: { type: "utc" }
+    }));
+    mount("facet", Plot.plot({ marks: [Plot.barY(groupedData, { x: "category", y: "value", fill: "series", fx: "series" })] }));
+
+    // ── Canada Map ───────────────────────────────────────────────────
+    const canadaTopo = await fetch("canadaprovtopo.json").then(r => r.json());
+    const provinces = topojson.feature(canadaTopo, canadaTopo.objects.canadaprov);
+    const provincemesh = topojson.mesh(canadaTopo, canadaTopo.objects.canadaprov);
+
+    mount("canadaMap", Plot.plot({
+      projection: "equirectangular",
+      width: 800,
+      marks: [
+        Plot.geo(provinces, { fill: "#ddd", stroke: "white", strokeWidth: 1 }),
+      ]
+    }));
+
+    mount("canadaMapFilled", Plot.plot({
+      projection: "equirectangular",
+      width: 800,
+      color: { legend: true },
+      marks: [
+        Plot.geo(provinces.features, { fill: d => d.properties.name, tip: true, title: d => d.properties.name }),
+        Plot.geo(provincemesh, { stroke: "white", strokeWidth: 0.5 })
+      ]
+    }));
+  </script>
+</body>
+</html>

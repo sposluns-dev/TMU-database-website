@@ -1,0 +1,45 @@
+:root {
+    /* A2AJ brand palette */
+    --color-red: #E31837;
+    --color-yellow: #FFDC00;
+    --color-turquoise: #339999;
+    --color-turquoise-light: #4DB8B8;
+    --color-turquoise-dark: #267373;
+
+    --color-black: #000000;
+    --color-gray-900: #0D0D0D;
+    --color-gray-800: #1A1A1A;
+    --color-gray-700: #2D2D2D;
+    --color-gray-600: #404040;
+    --color-gray-500: #666666;
+    --color-gray-400: #8C8C8C;
+    --color-gray-300: #B3B3B3;
+    --color-gray-200: #D9D9D9;
+    --color-gray-100: #F5F5F5;
+    --color-gray-50: #FAFAFA;
+    --color-white: #FFFFFF;
+
+    /* Template aliases mapped onto the A2AJ palette */
+    --color-neutral: var(--color-white);
+    --color-secondary: var(--color-gray-200);
+    --color-primary: var(--color-gray-500);
+    --color-primary-base: var(--color-gray-900);
+    --color-accent: var(--color-turquoise-dark);
+    --color-text: var(--color-gray-900);
+    --color-text-light: var(--color-gray-800);
+    --color-text-secondary: var(--color-gray-500);
+
+    /* Typography — A2AJ */
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-heading: 'DM Serif Display', Georgia, serif;
+    --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font-monospace: var(--font-mono);
+
+    --nav-height: 70px;
+
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
