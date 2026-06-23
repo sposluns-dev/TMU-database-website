@@ -1,0 +1,142 @@
+/* ──────────────────────────────────────────────────────────────────
+   Shared site chrome — A2AJ-style design tokens + navbar + footer.
+   Linked by every static page (e.g. scc.html) so they all match the
+   React app's look. Mirrors how a2aj.ca shares one stylesheet + nav
+   markup across its pages.
+   ────────────────────────────────────────────────────────────────── */
+
+:root {
+    /* A2AJ brand palette */
+    --color-red: #E31837;
+    --color-yellow: #FFDC00;
+    --color-turquoise: #339999;
+    --color-turquoise-light: #4DB8B8;
+    --color-turquoise-dark: #267373;
+
+    --color-gray-900: #0D0D0D;
+    --color-gray-800: #1A1A1A;
+    --color-gray-700: #2D2D2D;
+    --color-gray-600: #404040;
+    --color-gray-500: #666666;
+    --color-gray-400: #8C8C8C;
+    --color-gray-300: #B3B3B3;
+    --color-gray-200: #D9D9D9;
+    --color-gray-100: #F5F5F5;
+    --color-gray-50: #FAFAFA;
+    --color-white: #FFFFFF;
+
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    --nav-height: 70px;
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Site navbar ──────────────────────────────────────────────────── */
+.site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: var(--nav-height);
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-gray-200);
+    border-top: 3px solid;
+    border-image: linear-gradient(
+            to right,
+            var(--color-red),
+            var(--color-yellow),
+            var(--color-turquoise)
+        )
+        1;
+    box-shadow: var(--shadow-md);
+}
+
+.site-nav-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.site-nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-gray-900);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.site-nav-logo:hover {
+    color: var(--color-turquoise-dark);
+}
+
+.site-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.site-nav-link {
+    position: relative;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-gray-600);
+    text-decoration: none;
+    padding: 0.4rem 0;
+    transition: color 0.2s ease;
+}
+
+.site-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-turquoise-dark);
+    transition: width 0.2s ease;
+}
+
+.site-nav-link:hover,
+.site-nav-link.active {
+    color: var(--color-turquoise-dark);
+}
+
+.site-nav-link:hover::after,
+.site-nav-link.active::after {
+    width: 100%;
+}
+
+/* Push page content below the fixed navbar */
+.site-body {
+    padding-top: var(--nav-height);
+}
+
+/* ── Site footer ──────────────────────────────────────────────────── */
+.site-footer {
+    border-top: 1px solid var(--color-gray-200);
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-gray-600);
+    font-family: var(--font-body);
+}
+
+.site-footer .copyright {
+    font-size: 0.9rem;
+    color: var(--color-gray-500);
+}
