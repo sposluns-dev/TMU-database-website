@@ -1,0 +1,13 @@
+/* Main CSS entry point - imports all modular CSS files */
+
+/* Base styles and variables */
+@import "./variables.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./animations.css";
+
+/* Component styles */
+@import "./components/navbar.css";
+@import "./components/hero.css";
+@import "./components/footer.css";
+@import "./components/background.css";
