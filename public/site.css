@@ -33,6 +33,15 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
+/* Always reserve room for the vertical scrollbar, so pages that scroll and
+   pages that don't have the same content width. Without this, the centered
+   navbar shifts sideways when moving between a scrolling and non-scrolling
+   page (the "TMU database website" logo appears to jump right). */
+html {
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+}
+
 /* ── Site navbar ──────────────────────────────────────────────────── */
 .site-nav {
     position: fixed;
