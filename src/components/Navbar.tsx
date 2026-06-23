@@ -102,7 +102,7 @@ export const Navbar = () => {
                     </motion.li>
                     <motion.li whileHover="hover" variants={linkVariants}>
                         <a
-                            href="/scc.html"
+                            href={`${import.meta.env.BASE_URL}scc.html`}
                             className="nav-link"
                             onClick={handleHamburgerClick}
                         >
