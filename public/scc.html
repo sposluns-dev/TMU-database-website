@@ -92,8 +92,9 @@
   let topo = null;
   try { topo = await fetch("plots/canadaprovtopo.json").then(r => r.json()); } catch(e) { console.warn("TopoJSON fetch failed — map unavailable", e); };
 
-  const provinces = topojson.feature(topo, topo.objects.canadaprov);
-  const provincemesh = topojson.mesh(topo, topo.objects.canadaprov);
+  const mapAvailable = !!(topo && topo.objects && topo.objects.canadaprov);
+  const provinces = mapAvailable ? topojson.feature(topo, topo.objects.canadaprov) : { type: "FeatureCollection", features: [] };
+  const provincemesh = mapAvailable ? topojson.mesh(topo, topo.objects.canadaprov) : null;
 
   // All provinces sorted by case count
   const allProvinces = Array.from(
@@ -162,6 +163,12 @@
   let currentView = "map";
 
   function renderMap() {
+    if (!mapAvailable) {
+      const msg = document.createElement("div");
+      msg.style.cssText = "display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:14px;text-align:center;padding:24px;";
+      msg.textContent = "Map data unavailable — try the Bar, Pie, or Timeline views.";
+      return msg;
+    }
     const w = paneW(), h = paneH();
     const pd = filteredProvinceData();
     const countMap = new Map(pd.map(d => [d.province, d.count]));
