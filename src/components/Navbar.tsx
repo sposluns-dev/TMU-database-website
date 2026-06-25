@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 
-// Renders the same markup/classes as the static pages (scc.html), styled by the
-// shared public/site.css. One navbar definition across every page — the way
-// a2aj.ca keeps its nav identical site-wide.
+// Site-wide nav: Home · Search · About. Styled by public/site.css (.site-nav).
 export const Navbar = () => {
     const location = useLocation();
     const base = import.meta.env.BASE_URL;
-    const isHome = location.pathname === "/" || location.pathname === base;
+    const path = location.pathname.replace(base, "/").replace("//", "/");
+
+    const linkClass = (to: string) =>
+        `site-nav-link${path === to ? " active" : ""}`;
 
     return (
         <nav className="site-nav">
@@ -16,17 +17,19 @@ export const Navbar = () => {
                 </Link>
                 <ul className="site-nav-links">
                     <li>
-                        <Link
-                            to="/"
-                            className={`site-nav-link${isHome ? " active" : ""}`}
-                        >
+                        <Link to="/" className={linkClass("/")}>
                             Home
                         </Link>
                     </li>
                     <li>
-                        <a href={`${base}scc.html`} className="site-nav-link">
-                            SCC Rulings
-                        </a>
+                        <Link to="/search" className={linkClass("/search")}>
+                            Search
+                        </Link>
+                    </li>
+                    <li>
+                        <Link to="/about" className={linkClass("/about")}>
+                            About
+                        </Link>
                     </li>
                 </ul>
             </div>
