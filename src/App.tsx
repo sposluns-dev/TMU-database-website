@@ -3,6 +3,8 @@ import { Navbar } from "./components/Navbar.tsx";
 import { Footer } from "./components/Footer.tsx";
 import { Background } from "./components/Background.tsx";
 import { Hero } from "./components/Hero.tsx";
+import { Search } from "./components/Search.tsx";
+import { About } from "./components/About.tsx";
 
 function HomePage() {
     return (
@@ -22,6 +24,8 @@ function App() {
                         <div style={{ paddingTop: "80px" }}>
                             <Routes>
                                 <Route path="/" element={<HomePage />} />
+                                <Route path="/search" element={<Search />} />
+                                <Route path="/about" element={<About />} />
                             </Routes>
                         </div>
                     </main>
