@@ -243,6 +243,109 @@
     text-decoration: underline;
 }
 
+/* ── Search tips ─────────────────────────────────────────────────── */
+.tips-toggle {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0 0 0.5rem;
+}
+.tips-toggle:hover {
+    text-decoration: underline;
+}
+.search-tips {
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem 0.75rem 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.88rem;
+    color: var(--color-text-light);
+}
+.search-tips ul {
+    margin: 0;
+    padding-left: 1rem;
+    line-height: 1.6;
+}
+
+/* ── View toggle ─────────────────────────────────────────────────── */
+.view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.view-toggle button {
+    background: var(--color-white);
+    color: var(--color-text);
+    border: none;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-radius: 0;
+}
+.view-toggle button.active {
+    background: var(--color-accent);
+    color: var(--color-white);
+}
+.view-toggle button:hover:not(.active) {
+    background: var(--color-gray-100);
+}
+
+/* ── Tags on cards ───────────────────────────────────────────────── */
+.result-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+.result-tags .tag {
+    font-size: 0.72rem;
+    background: var(--color-turquoise-light);
+    color: var(--color-white);
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+}
+
+/* ── Table view ──────────────────────────────────────────────────── */
+.result-table-wrap {
+    overflow-x: auto;
+}
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.result-table th,
+.result-table td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-gray-200);
+    vertical-align: top;
+}
+.result-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary);
+}
+.result-table tr:hover td {
+    background: var(--color-gray-50);
+}
+.result-table .mono {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+.result-table a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .no-results {
     color: var(--color-text-secondary);
     padding: 2rem 0;
