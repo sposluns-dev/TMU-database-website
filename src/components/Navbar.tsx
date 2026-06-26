@@ -34,9 +34,6 @@ export const Navbar = () => {
                             </Link>
                         </li>
                     </ul>
-                    <Link to="/search" className="site-nav-cta">
-                        Search cases →
-                    </Link>
                 </div>
             </nav>
         </div>

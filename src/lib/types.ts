@@ -42,7 +42,7 @@ export interface EmbeddingsMeta {
 export interface Filters {
   court?: string;
   province?: string;
-  subject?: string;
+  subjects?: string[]; // match cases tagged with ANY of these
   courtType?: string;
   legalArea?: string;
   dateFrom?: string; // YYYY-MM-DD

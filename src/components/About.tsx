@@ -17,20 +17,6 @@ export function About() {
                 map of cases by province.
             </p>
 
-            <h2 style={{ fontFamily: "var(--font-heading)" }}>Data &amp; caveats</h2>
-            <p>
-                Texts are unofficial copies gathered through automated processes
-                and may contain inaccuracies. Always verify against official
-                sources. Please respect publication bans and privacy; some
-                tribunal decisions have no public name.
-            </p>
-
-            <h2 style={{ fontFamily: "var(--font-heading)" }}>Attribution</h2>
-            <p>
-                Case data: Sean Rehaag &amp; Simon Wallace, “A2AJ Canadian Legal
-                Data” (2025). This project is not affiliated with the Government
-                of Canada or any court or tribunal.
-            </p>
         </div>
     );
 }

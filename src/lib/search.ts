@@ -75,7 +75,9 @@ function matchesFilters(c: CaseMeta, f: Filters): boolean {
   if (f.court && c.court !== f.court) return false;
   if (f.province && (courtToProvince(c.court) ?? "Federal") !== f.province)
     return false;
-  if (f.subject && !(c.subjects ?? []).includes(f.subject)) return false;
+  if (f.subjects && f.subjects.length &&
+      !(c.subjects ?? []).some((s) => f.subjects!.includes(s)))
+    return false;
   if (f.courtType && c.court_type !== f.courtType) return false;
   if (f.legalArea && c.legal_area !== f.legalArea) return false;
   if (f.dateFrom && c.date < f.dateFrom) return false;
