@@ -243,6 +243,33 @@
     text-decoration: underline;
 }
 
+/* ── Mode bar + auto-detected mode pill ──────────────────────────── */
+.search-modebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+}
+.mode-pill {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.15rem 0.7rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.mode-browse   { background: var(--color-gray-100); color: var(--color-text-secondary); }
+.mode-semantic { background: var(--color-turquoise-light); color: #fff; }
+.mode-hybrid   { background: var(--color-turquoise-dark); color: #fff; }
+.mode-keyword  { background: var(--color-gray-700); color: #fff; }
+.search-tips code {
+    background: var(--color-gray-100);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+}
+
 /* ── Search tips ─────────────────────────────────────────────────── */
 .tips-toggle {
     background: none;
