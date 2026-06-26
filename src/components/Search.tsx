@@ -207,6 +207,14 @@ export function Search() {
                 )}
               </div>
               {r.snippet && <p className="result-snippet">{r.snippet}…</p>}
+              <a
+                className="result-open"
+                href={`${import.meta.env.BASE_URL}data/cases/${r.rank}.html`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open full case ↗
+              </a>
             </li>
           ))}
         </ul>

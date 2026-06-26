@@ -231,6 +231,18 @@
     line-height: 1.5;
 }
 
+.result-open {
+    display: inline-block;
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-decoration: none;
+}
+.result-open:hover {
+    text-decoration: underline;
+}
+
 .no-results {
     color: var(--color-text-secondary);
     padding: 2rem 0;
