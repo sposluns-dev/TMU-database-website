@@ -3,6 +3,7 @@ import { Navbar } from "./components/Navbar.tsx";
 import { Footer } from "./components/Footer.tsx";
 import { Background } from "./components/Background.tsx";
 import { Hero } from "./components/Hero.tsx";
+import { Partners } from "./components/Partners.tsx";
 import { Search } from "./components/Search.tsx";
 import { About } from "./components/About.tsx";
 
@@ -10,6 +11,7 @@ function HomePage() {
     return (
         <>
             <Hero />
+            <Partners />
         </>
     );
 }

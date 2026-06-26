@@ -26,7 +26,7 @@ const Visualize = lazy(() =>
 );
 
 type SortKey = "relevance" | "date_desc" | "date_asc" | "title";
-type View = "cards" | "table" | "map";
+type View = "cards" | "table";
 
 export function Search() {
   const [index, setIndex] = useState<CasesIndex | null>(null);
@@ -35,15 +35,22 @@ export function Search() {
 
   const [court, setCourt] = useState("");
   const [province, setProvince] = useState("");
-  const [subject, setSubject] = useState("");
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [subjectsOpen, setSubjectsOpen] = useState(false);
   const [courtType, setCourtType] = useState("");
   const [legalArea, setLegalArea] = useState("");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
 
+  const toggleSubject = (s: string) =>
+    setSubjects((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+    );
+
   const [sort, setSort] = useState<SortKey>("relevance");
   const [perPage, setPerPage] = useState(30);
   const [view, setView] = useState<View>("cards");
+  const [showViz, setShowViz] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -57,13 +64,13 @@ export function Search() {
     () => ({
       court: court || undefined,
       province: province || undefined,
-      subject: subject || undefined,
+      subjects: subjects.length ? subjects : undefined,
       courtType: courtType || undefined,
       legalArea: legalArea || undefined,
       dateFrom: yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearTo ? `${yearTo}-12-31` : undefined,
     }),
-    [court, province, subject, courtType, legalArea, yearFrom, yearTo],
+    [court, province, subjects, courtType, legalArea, yearFrom, yearTo],
   );
 
   async function runSearch() {
@@ -81,7 +88,7 @@ export function Search() {
   useEffect(() => {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, court, province, subject, courtType, legalArea, yearFrom, yearTo]);
+  }, [index, court, province, subjects, courtType, legalArea, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
     const list = [...results];
@@ -107,7 +114,7 @@ export function Search() {
   function clearFilters() {
     setCourt("");
     setProvince("");
-    setSubject("");
+    setSubjects([]);
     setCourtType("");
     setLegalArea("");
     setYearFrom("");
@@ -136,16 +143,6 @@ export function Search() {
             <option value="">All provinces</option>
             {provinces.map((p) => (
               <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label className="filter-label">Subject</label>
-          <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-            <option value="">All subjects</option>
-            {SUBJECTS.map((s) => (
-              <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </div>
@@ -183,6 +180,34 @@ export function Search() {
               value={yearTo} onChange={(e) => setYearTo(e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="filter-group">
+          <button
+            type="button"
+            className="subject-toggle"
+            aria-expanded={subjectsOpen}
+            onClick={() => setSubjectsOpen((v) => !v)}
+          >
+            <span className="filter-label" style={{ margin: 0 }}>
+              Subjects{subjects.length ? ` (${subjects.length})` : ""}
+            </span>
+            <span className="subject-chevron">{subjectsOpen ? "▾" : "▸"}</span>
+          </button>
+          {subjectsOpen && (
+            <div className="subject-list">
+              {SUBJECTS.map((s) => (
+                <label key={s} className="subject-check">
+                  <input
+                    type="checkbox"
+                    checked={subjects.includes(s)}
+                    onChange={() => toggleSubject(s)}
+                  />
+                  <span>{s}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <button className="filter-clear" onClick={clearFilters}>
@@ -228,8 +253,8 @@ export function Search() {
               <li>Mix them: <code>"freedom of religion" school</code> — must contain the phrase, ranked by closeness to <em>school</em>.</li>
             </ul>
             <p>
-              Combine with sidebar <strong>filters</strong>, switch to the
-              <strong> Map</strong> view for provinces, or
+              Combine with sidebar <strong>filters</strong>, open
+              <strong> Visualizations</strong> for charts and a Canada map, or
               <strong> Open full case ↗</strong> to read a decision.
             </p>
           </div>
@@ -261,7 +286,7 @@ export function Search() {
               </select>
             </label>
             <div className="view-toggle">
-              {(["cards", "table", "map"] as View[]).map((v) => (
+              {(["cards", "table"] as View[]).map((v) => (
                 <button
                   key={v}
                   className={view === v ? "active" : ""}
@@ -271,14 +296,21 @@ export function Search() {
                 </button>
               ))}
             </div>
+            <button
+              className={showViz ? "viz-btn active" : "viz-btn"}
+              onClick={() => setShowViz((v) => !v)}
+              disabled={!sorted.length}
+            >
+              {showViz ? "Hide visualizations" : "Visualizations"}
+            </button>
             <button onClick={() => downloadCsv(sorted)} disabled={!sorted.length}>
               Export CSV
             </button>
           </div>
         </div>
 
-        {/* ── Views ──────────────────────────────────────────────── */}
-        {view === "map" && (
+        {/* ── Visualizations panel (toggled, above results) ──────── */}
+        {showViz && sorted.length > 0 && (
           <div className="search-viz">
             <Suspense fallback={<p>Loading charts…</p>}>
               <Visualize results={sorted} />
@@ -286,6 +318,7 @@ export function Search() {
           </div>
         )}
 
+        {/* ── Results ────────────────────────────────────────────── */}
         {view === "cards" && (
           <ul className="result-list">
             {shown.map((r) => (

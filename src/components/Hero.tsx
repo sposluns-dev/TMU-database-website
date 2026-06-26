@@ -33,7 +33,7 @@ export const Hero = () => {
                 initial="visible"
                 animate="visible"
             >
-                <motion.h1 className="hero-title">Header</motion.h1>
+                <motion.h1 className="hero-title">TMU Database Website</motion.h1>
 
                 <motion.div variants={itemVariants}>
                     <p>text</p>

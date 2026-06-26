@@ -1,0 +1,54 @@
+@import "../variables.css";
+
+.partners {
+    max-width: 900px;
+    margin: 4rem auto 2rem;
+    padding: 2rem;
+    text-align: center;
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.partners-label {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+    margin: 1.5rem 0 1rem;
+}
+.partners-label:first-child {
+    margin-top: 0;
+}
+
+.partners-logos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
+}
+
+.partners-logos a {
+    display: inline-flex;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.partners-logos a:hover {
+    opacity: 0.75;
+    transform: translateY(-2px);
+}
+
+.partners-logos img {
+    height: 64px;
+    width: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 600px) {
+    .partners-logos {
+        gap: 1.5rem;
+    }
+    .partners-logos img {
+        height: 48px;
+    }
+}
