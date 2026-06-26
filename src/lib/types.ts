@@ -7,6 +7,19 @@ export interface CaseMeta {
   court: string;
   date: string; // YYYY-MM-DD
   snippet: string;
+  // Optional tags merged from public/data/case_tags.json (added later):
+  subjects?: string[];
+  court_type?: string;
+  legal_area?: string;
+}
+
+// Shape of the optional public/data/case_tags.json file (rank → tags).
+export interface CaseTags {
+  [rank: string]: {
+    subjects?: string[];
+    court_type?: string;
+    legal_area?: string;
+  };
 }
 
 export interface CasesIndex {
@@ -28,6 +41,10 @@ export interface EmbeddingsMeta {
 
 export interface Filters {
   court?: string;
+  province?: string;
+  subject?: string;
+  courtType?: string;
+  legalArea?: string;
   dateFrom?: string; // YYYY-MM-DD
   dateTo?: string;
 }

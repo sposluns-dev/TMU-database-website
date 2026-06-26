@@ -3,9 +3,11 @@
 // court/date filters, and collapses chunk hits down to one result per case.
 
 import { embedQuery } from "./embed";
+import { courtToProvince } from "./viz";
 import type {
   CaseMeta,
   CasesIndex,
+  CaseTags,
   EmbeddingsMeta,
   Filters,
   SearchResult,
@@ -20,7 +22,30 @@ let vectorsPromise: Promise<{ meta: EmbeddingsMeta; q: Int8Array }> | null = nul
 
 export function loadIndex(): Promise<CasesIndex> {
   if (!indexPromise) {
-    indexPromise = fetch(`${DATA_BASE}/cases_index.json`).then((r) => r.json());
+    indexPromise = (async () => {
+      const index: CasesIndex = await fetch(
+        `${DATA_BASE}/cases_index.json`,
+      ).then((r) => r.json());
+
+      // Optionally merge tags from public/data/case_tags.json (may not exist).
+      try {
+        const res = await fetch(`${DATA_BASE}/case_tags.json`);
+        if (res.ok) {
+          const tags: CaseTags = await res.json();
+          for (const c of index.cases) {
+            const t = tags[String(c.rank)];
+            if (t) {
+              c.subjects = t.subjects;
+              c.court_type = t.court_type;
+              c.legal_area = t.legal_area;
+            }
+          }
+        }
+      } catch {
+        /* no tags file yet — filters simply match nothing */
+      }
+      return index;
+    })();
   }
   return indexPromise;
 }
@@ -47,6 +72,11 @@ export function warmSemantic() {
 
 function matchesFilters(c: CaseMeta, f: Filters): boolean {
   if (f.court && c.court !== f.court) return false;
+  if (f.province && (courtToProvince(c.court) ?? "Federal") !== f.province)
+    return false;
+  if (f.subject && !(c.subjects ?? []).includes(f.subject)) return false;
+  if (f.courtType && c.court_type !== f.courtType) return false;
+  if (f.legalArea && c.legal_area !== f.legalArea) return false;
   if (f.dateFrom && c.date < f.dateFrom) return false;
   if (f.dateTo && c.date > f.dateTo) return false;
   return true;
