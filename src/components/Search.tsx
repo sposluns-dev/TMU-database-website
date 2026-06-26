@@ -7,12 +7,19 @@
 // match against tags merged from public/data/case_tags.json (added later).
 
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { search, loadIndex, warmSemantic } from "../lib/search";
+import { search, loadIndex, warmSemantic, type SearchMode } from "../lib/search";
 import { downloadCsv } from "../lib/export";
 import { courtToProvince } from "../lib/viz";
 import { SUBJECTS, COURT_TYPES, AREAS_OF_LAW } from "../lib/taxonomy";
 import type { CasesIndex, Filters, SearchResult } from "../lib/types";
 import "../styles/components/search.css";
+
+const MODE_LABEL: Record<SearchMode, string> = {
+  browse: "Browsing all cases",
+  semantic: "Searching by meaning",
+  hybrid: "Keyword filter + meaning ranking",
+  keyword: "Boolean keyword search",
+};
 
 const Visualize = lazy(() =>
   import("./Visualize").then((m) => ({ default: m.Visualize })),
@@ -24,7 +31,7 @@ type View = "cards" | "table" | "map";
 export function Search() {
   const [index, setIndex] = useState<CasesIndex | null>(null);
   const [query, setQuery] = useState("");
-  const [semantic, setSemantic] = useState(true);
+  const [mode, setMode] = useState<SearchMode>("browse");
 
   const [court, setCourt] = useState("");
   const [province, setProvince] = useState("");
@@ -62,11 +69,9 @@ export function Search() {
   async function runSearch() {
     setLoading(true);
     try {
-      const r = await search(query, filters, {
-        semantic: semantic && Boolean(query.trim()),
-        k: semantic && query.trim() ? 100 : 600,
-      });
+      const { results: r, mode: m } = await search(query, filters, { k: 100 });
       setResults(r);
+      setMode(m);
     } finally {
       setLoading(false);
     }
@@ -180,22 +185,6 @@ export function Search() {
           </div>
         </div>
 
-        <div className="filter-group">
-          <label className="filter-label">Search mode</label>
-          <label className="filter-check">
-            <input
-              type="checkbox" checked={semantic}
-              onChange={(e) => setSemantic(e.target.checked)}
-            />
-            Semantic (AI) search
-          </label>
-          <p className="filter-hint">
-            {semantic
-              ? "Meaning-based. Loads a small model on first use."
-              : "Keyword match on name, citation, snippet."}
-          </p>
-        </div>
-
         <button className="filter-clear" onClick={clearFilters}>
           Clear filters
         </button>
@@ -217,18 +206,32 @@ export function Search() {
           </button>
         </div>
 
-        <button className="tips-toggle" onClick={() => setShowTips((v) => !v)}>
-          {showTips ? "Hide search tips" : "Search tips"}
-        </button>
+        <div className="search-modebar">
+          <button className="tips-toggle" onClick={() => setShowTips((v) => !v)}>
+            {showTips ? "Hide search tips" : "Search tips"}
+          </button>
+          <span className={`mode-pill mode-${mode}`}>{MODE_LABEL[mode]}</span>
+        </div>
         {showTips && (
           <div className="search-tips">
+            <p>
+              Type a plain question and we search <strong>by meaning</strong>.
+              Add operators and we switch to <strong>keyword</strong> search over
+              the full text of every decision:
+            </p>
             <ul>
-              <li><strong>Semantic search</strong> finds cases by meaning — try a concept like <em>“religious accommodation in schools”</em>, not just keywords.</li>
-              <li>Uncheck <strong>Semantic</strong> for exact keyword matching on case name, citation, or snippet.</li>
-              <li>Combine the search box with sidebar <strong>filters</strong> (court, province, year…) to narrow results.</li>
-              <li>Use the <strong>Map</strong> view to see how cases distribute across provinces.</li>
-              <li>Click <strong>Open full case ↗</strong> to read the entire decision in a new tab.</li>
+              <li><code>"section 13"</code> — exact phrase (use quotes)</li>
+              <li><code>internet AND hatred</code> — both terms must appear</li>
+              <li><code>hate OR discrimination</code> — either term</li>
+              <li><code>charter NOT immigration</code> or <code>charter -immigration</code> — exclude a term</li>
+              <li><code>discriminat*</code> — wildcard (discriminate, discrimination…)</li>
+              <li>Mix them: <code>"freedom of religion" school</code> — must contain the phrase, ranked by closeness to <em>school</em>.</li>
             </ul>
+            <p>
+              Combine with sidebar <strong>filters</strong>, switch to the
+              <strong> Map</strong> view for provinces, or
+              <strong> Open full case ↗</strong> to read a decision.
+            </p>
           </div>
         )}
 

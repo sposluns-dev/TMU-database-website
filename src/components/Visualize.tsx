@@ -88,17 +88,20 @@ export function Visualize({ results }: { results: SearchResult[] }) {
             scheme: "blues",
             legend: true,
             label: "Cases",
-            unknown: "#f0f0f0",
+            unknown: "#e6e6e6", // provinces with no cases: visible neutral grey
           },
           marks: [
+            // Base layer: every province always drawn with a clear outline.
+            Plot.geo(provinces, { fill: "#e6e6e6", stroke: "#9aa0a6", strokeWidth: 0.7 }),
+            // Colored layer: provinces that have matching cases.
             Plot.geo(provinces, {
               fill: (d: any) => counts.get(d.properties.name) ?? null,
               title: (d: any) =>
                 `${d.properties.name}: ${counts.get(d.properties.name) ?? 0}`,
-              stroke: "white",
-              strokeWidth: 0.5,
+              stroke: "#9aa0a6",
+              strokeWidth: 0.7,
             }),
-            Plot.geo(mesh, { stroke: "white", strokeWidth: 0.5 }),
+            Plot.geo(mesh, { stroke: "#9aa0a6", strokeWidth: 0.5 }),
           ],
         });
       }
