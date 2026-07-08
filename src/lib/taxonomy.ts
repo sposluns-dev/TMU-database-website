@@ -45,3 +45,28 @@ export const AREAS_OF_LAW = [
 export type Subject = (typeof SUBJECTS)[number];
 export type CourtType = (typeof COURT_TYPES)[number];
 export type AreaOfLaw = (typeof AREAS_OF_LAW)[number];
+
+// Full court/tribunal names for disambiguating the court-code filter.
+// Codes not listed here fall back to showing just the code.
+export const COURT_NAMES: Record<string, string> = {
+  SCC: "Supreme Court of Canada",
+  FCA: "Federal Court of Appeal",
+  FC: "Federal Court",
+  TCC: "Tax Court of Canada",
+  CHRT: "Canadian Human Rights Tribunal",
+  FPSLREB: "Federal Public Sector Labour Relations & Employment Board",
+  SST: "Social Security Tribunal of Canada",
+  RAD: "Refugee Appeal Division (IRB)",
+  RPD: "Refugee Protection Division (IRB)",
+  RLLR: "Refugee Law Lab Reporter",
+  BCCA: "British Columbia Court of Appeal",
+  BCSC: "Supreme Court of British Columbia",
+  ONCA: "Court of Appeal for Ontario",
+  NSCA: "Nova Scotia Court of Appeal",
+  NSSC: "Supreme Court of Nova Scotia",
+  NSPC: "Provincial Court of Nova Scotia",
+};
+
+export function courtLabel(code: string): string {
+  return COURT_NAMES[code] ? `${code} — ${COURT_NAMES[code]}` : code;
+}

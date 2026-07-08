@@ -9,7 +9,9 @@ const FIELDS: (keyof SearchResult)[] = [
   "case_name",
   "court",
   "date",
-  "distance",
+  "city",
+  "province",
+  "url",
 ];
 
 function escapeCsv(value: unknown): string {

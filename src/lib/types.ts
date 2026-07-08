@@ -7,6 +7,10 @@ export interface CaseMeta {
   court: string;
   date: string; // YYYY-MM-DD
   snippet: string;
+  // Merged from cases/upper via scripts/enrich_index.py (where available):
+  url?: string; // CanLII URL
+  city?: string;
+  province?: string;
   // Optional tags merged from public/data/case_tags.json (added later):
   subjects?: string[];
   court_type?: string;
@@ -31,12 +35,19 @@ export interface CasesIndex {
   };
 }
 
+export type MatchMode = "and" | "or"; // require ALL vs ANY of the selected values
+
 export interface Filters {
-  court?: string;
-  province?: string;
-  subjects?: string[]; // match cases tagged with ANY of these
-  courtType?: string;
-  legalArea?: string;
+  courts?: string[];
+  courtsMode?: MatchMode;
+  provinces?: string[];
+  provincesMode?: MatchMode;
+  subjects?: string[];
+  subjectsMode?: MatchMode;
+  courtTypes?: string[];
+  courtTypesMode?: MatchMode;
+  legalAreas?: string[];
+  legalAreasMode?: MatchMode;
   dateFrom?: string; // YYYY-MM-DD
   dateTo?: string;
 }

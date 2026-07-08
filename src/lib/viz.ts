@@ -66,6 +66,19 @@ export function byYear(results: SearchResult[]): VizDatum[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Count by city (from the enriched index). Cases without a city are skipped. */
+export function byCity(results: SearchResult[]): VizDatum[] {
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    const city = (r.city ?? "").trim();
+    if (!city) continue;
+    counts.set(city, (counts.get(city) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 /** Count by province for the Canada map. Federal cases counted under "Federal". */
 export function byProvince(results: SearchResult[]): VizDatum[] {
   const counts = new Map<string, number>();
