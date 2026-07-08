@@ -164,16 +164,5 @@ export async function search(
   return { results, mode: "keyword" };
 }
 
-// ── Full-text loader (lazy, per case) ─────────────────────────────────────────
-
-const caseCache = new Map<number, Promise<unknown>>();
-
-export function getCase(rank: number) {
-  if (!caseCache.has(rank)) {
-    caseCache.set(
-      rank,
-      fetch(`${DATA_BASE}/cases/${rank}.json`).then((r) => r.json()),
-    );
-  }
-  return caseCache.get(rank)!;
-}
+// Full decisions are opened as prebuilt static pages (data/cases/<rank>.html),
+// linked directly from the results — no per-case JSON fetch needed.
