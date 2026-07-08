@@ -1,15 +1,14 @@
-// In-browser search: the TypeScript port of rag.py's retrieve + dedupe_by_case.
-// Loads the static data files, runs cosine similarity over int8 vectors, applies
-// court/date filters, and collapses chunk hits down to one result per case.
+// In-browser keyword / full-text search, served entirely from GitHub Pages.
+// Every query is matched against the inverted index (public/data/textindex.json);
+// results are filtered by court/date and returned one per case. No embeddings,
+// no model download — semantic search was intentionally removed.
 
-import { embedQuery } from "./embed";
 import { courtToProvince } from "./viz";
-import { parseQuery, booleanCandidates } from "./textsearch";
+import { parseQuery, booleanCandidates, tokenize, loadTextIndex } from "./textsearch";
 import type {
   CaseMeta,
   CasesIndex,
   CaseTags,
-  EmbeddingsMeta,
   Filters,
   SearchResult,
 } from "./types";
@@ -19,7 +18,6 @@ const DATA_BASE = `${import.meta.env.BASE_URL}data`;
 // ── Lazy-loaded singletons ────────────────────────────────────────────────────
 
 let indexPromise: Promise<CasesIndex> | null = null;
-let vectorsPromise: Promise<{ meta: EmbeddingsMeta; q: Int8Array }> | null = null;
 
 export function loadIndex(): Promise<CasesIndex> {
   if (!indexPromise) {
@@ -51,22 +49,9 @@ export function loadIndex(): Promise<CasesIndex> {
   return indexPromise;
 }
 
-function loadVectors() {
-  if (!vectorsPromise) {
-    vectorsPromise = (async () => {
-      const [meta, buf] = await Promise.all([
-        fetch(`${DATA_BASE}/embeddings_meta.json`).then((r) => r.json()),
-        fetch(`${DATA_BASE}/embeddings.bin`).then((r) => r.arrayBuffer()),
-      ]);
-      return { meta: meta as EmbeddingsMeta, q: new Int8Array(buf) };
-    })();
-  }
-  return vectorsPromise;
-}
-
-/** Preload the heavy assets (call when the user focuses the search box). */
-export function warmSemantic() {
-  loadVectors();
+/** Preload the text index (call when the user focuses the search box). */
+export function warmSearch() {
+  loadTextIndex();
 }
 
 // ── Filtering ─────────────────────────────────────────────────────────────────
@@ -110,60 +95,35 @@ export async function keywordSearch(
   return out.slice(0, k);
 }
 
-// ── Semantic search (cosine over int8 vectors) ────────────────────────────────
+// ── Full-text keyword search (over the inverted index) ────────────────────────
 
-export async function semanticSearch(
-  query: string,
-  filters: Filters = {},
-  k = 12,
-  allowedRanks?: Set<number>,
-): Promise<SearchResult[]> {
-  const [{ cases }, { meta, q }, qvec] = await Promise.all([
-    loadIndex(),
-    loadVectors(),
-    embedQuery(query),
-  ]);
+/**
+ * Ranks matching the query. A plain query requires every token (AND) over the
+ * full decision text; operator queries (quotes / AND·OR·NOT / -exclude / *) use
+ * the boolean parser. Returns the matching case ranks.
+ */
+async function fullTextCandidates(trimmed: string): Promise<Set<number>> {
+  const parsed = parseQuery(trimmed);
+  if (parsed.hasOperators) return booleanCandidates(parsed);
 
-  const { dims, count, scale, ranks } = meta;
-  const byRank = new Map<number, CaseMeta>();
-  for (const c of cases) byRank.set(c.rank, c);
-
-  // Which ranks pass the filter? (skip scoring chunks of filtered-out cases)
-  // If allowedRanks is given (boolean candidates), intersect with it.
-  const allowed = new Set<number>();
-  for (const c of cases) {
-    if (!matchesFilters(c, filters)) continue;
-    if (allowedRanks && !allowedRanks.has(c.rank)) continue;
-    allowed.add(c.rank);
+  // Plain query → treat each token as a required term (AND).
+  const tokens = tokenize(trimmed);
+  if (!tokens.length) {
+    // Nothing indexable (e.g. all stopwords/1-char) → fall back to metadata match.
+    return null as unknown as Set<number>;
   }
-
-  // Best (highest) similarity per case rank.
-  const best = new Map<number, number>();
-  for (let i = 0; i < count; i++) {
-    const rank = ranks[i];
-    if (!allowed.has(rank)) continue;
-    const base = i * dims;
-    let dot = 0;
-    for (let d = 0; d < dims; d++) {
-      dot += (q[base + d] * scale) * qvec[d];
-    }
-    const prev = best.get(rank);
-    if (prev === undefined || dot > prev) best.set(rank, dot);
-  }
-
-  const results: SearchResult[] = [];
-  for (const [rank, sim] of best) {
-    const c = byRank.get(rank);
-    if (!c) continue;
-    results.push({ ...c, distance: 1 - sim }); // cosine distance
-  }
-  results.sort((a, b) => (a.distance ?? 1) - (b.distance ?? 1));
-  return results.slice(0, k);
+  return booleanCandidates({
+    hasOperators: true,
+    requiredGroups: tokens.map((t) => [{ kind: "term", value: t }]),
+    excluded: [],
+    freeText: trimmed,
+    mode: "keyword",
+  });
 }
 
-// ── Unified entry point: auto-detect mode from the query ──────────────────────
+// ── Unified entry point ───────────────────────────────────────────────────────
 
-export type SearchMode = "browse" | "semantic" | "hybrid" | "keyword";
+export type SearchMode = "browse" | "keyword";
 
 export interface SearchResponse {
   results: SearchResult[];
@@ -171,19 +131,15 @@ export interface SearchResponse {
 }
 
 /**
- * Routes the query automatically:
- *  - empty query        → browse (filters only)
- *  - no operators       → semantic (RAG)
- *  - operators present  → boolean filter, then:
- *      · hybrid  — rank survivors by semantic similarity to the free text
- *      · keyword — (no free text) order survivors by curated rank
+ * Keyword-only search:
+ *  - empty query → browse (filters only, ordered by curated rank)
+ *  - any query   → full-text match over textindex.json, filtered, by curated rank
  */
 export async function search(
   query: string,
   filters: Filters = {},
   opts: { k?: number } = {},
 ): Promise<SearchResponse> {
-  const k = opts.k ?? 100;
   const trimmed = query.trim();
 
   if (!trimmed) {
@@ -191,22 +147,14 @@ export async function search(
     return { results, mode: "browse" };
   }
 
-  const parsed = parseQuery(trimmed);
+  const candidates = await fullTextCandidates(trimmed);
 
-  if (!parsed.hasOperators) {
-    const results = await semanticSearch(trimmed, filters, k);
-    return { results, mode: "semantic" };
+  // Unindexable query → fall back to substring match on name/citation/snippet.
+  if (!candidates) {
+    const results = await keywordSearch(trimmed, filters, opts.k ?? 600);
+    return { results, mode: "keyword" };
   }
 
-  // Operators present → boolean candidate set.
-  const candidates = await booleanCandidates(parsed);
-
-  if (parsed.mode === "hybrid" && parsed.freeText) {
-    const results = await semanticSearch(parsed.freeText, filters, k, candidates);
-    return { results, mode: "hybrid" };
-  }
-
-  // Pure keyword: build results from the index, ordered by curated rank.
   const { cases } = await loadIndex();
   const results: SearchResult[] = cases
     .filter((c) => candidates.has(c.rank) && matchesFilters(c, filters))

@@ -31,14 +31,6 @@ export interface CasesIndex {
   };
 }
 
-export interface EmbeddingsMeta {
-  dims: number;
-  count: number;
-  scale: number;
-  dtype: "int8";
-  ranks: number[]; // ranks[i] = case rank for embedding row i
-}
-
 export interface Filters {
   court?: string;
   province?: string;
