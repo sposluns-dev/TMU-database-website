@@ -74,7 +74,8 @@ export function Search() {
   async function runSearch() {
     setLoading(true);
     try {
-      const { results: r, mode: m } = await search(query, filters, { k: 100 });
+      // Fetch all matches; the "Show" dropdown (perPage) controls how many display.
+      const { results: r, mode: m } = await search(query, filters, { k: 1000 });
       setResults(r);
       setMode(m);
     } finally {
