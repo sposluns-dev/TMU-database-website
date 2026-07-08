@@ -7,7 +7,7 @@
 // match against tags merged from public/data/case_tags.json (added later).
 
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { search, loadIndex, warmSemantic, type SearchMode } from "../lib/search";
+import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
 import { downloadCsv } from "../lib/export";
 import { courtToProvince } from "../lib/viz";
 import { SUBJECTS, COURT_TYPES, AREAS_OF_LAW } from "../lib/taxonomy";
@@ -16,9 +16,7 @@ import "../styles/components/search.css";
 
 const MODE_LABEL: Record<SearchMode, string> = {
   browse: "Browsing all cases",
-  semantic: "Searching by meaning",
-  hybrid: "Keyword filter + meaning ranking",
-  keyword: "Boolean keyword search",
+  keyword: "Keyword search",
 };
 
 const Visualize = lazy(() =>
@@ -222,7 +220,7 @@ export function Search() {
             type="text"
             placeholder="Search cases (e.g. internet hate speech, religious freedom)…"
             value={query}
-            onFocus={warmSemantic}
+            onFocus={warmSearch}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
           />
@@ -240,9 +238,8 @@ export function Search() {
         {showTips && (
           <div className="search-tips">
             <p>
-              Type a plain question and we search <strong>by meaning</strong>.
-              Add operators and we switch to <strong>keyword</strong> search over
-              the full text of every decision:
+              We run a <strong>keyword search</strong> over the full text of every
+              decision. Plain terms must all appear; add operators to refine:
             </p>
             <ul>
               <li><code>"section 13"</code> — exact phrase (use quotes)</li>
@@ -250,7 +247,7 @@ export function Search() {
               <li><code>hate OR discrimination</code> — either term</li>
               <li><code>charter NOT immigration</code> or <code>charter -immigration</code> — exclude a term</li>
               <li><code>discriminat*</code> — wildcard (discriminate, discrimination…)</li>
-              <li>Mix them: <code>"freedom of religion" school</code> — must contain the phrase, ranked by closeness to <em>school</em>.</li>
+              <li>Mix them: <code>"freedom of religion" school</code> — must contain the phrase and <em>school</em>.</li>
             </ul>
             <p>
               Combine with sidebar <strong>filters</strong>, open
