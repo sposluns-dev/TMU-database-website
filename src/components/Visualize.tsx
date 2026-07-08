@@ -9,9 +9,9 @@ import { useEffect, useRef, useState } from "react";
 import * as Plot from "@observablehq/plot";
 import * as topojson from "topojson-client";
 import type { SearchResult } from "../lib/types";
-import { byCourt, byYear, provinceCounts } from "../lib/viz";
+import { byCourt, byYear, byCity, provinceCounts } from "../lib/viz";
 
-type ChartType = "map" | "court" | "year";
+type ChartType = "map" | "city" | "court" | "year";
 
 const TOPO_URL = `${import.meta.env.BASE_URL}data/canadaprovtopo.json`;
 
@@ -43,6 +43,30 @@ export function Visualize({ results }: { results: SearchResult[] }) {
         node = Plot.plot({
           marginLeft: 90,
           height: Math.max(120, data.length * 26 + 40),
+          x: { label: "Cases", grid: true },
+          y: { label: null },
+          marks: [
+            Plot.barX(data, {
+              x: "count",
+              y: "name",
+              fill: "#339999",
+              sort: { y: "x", order: "descending" },
+            }),
+            Plot.text(data, {
+              x: "count",
+              y: "name",
+              text: (d) => d.count,
+              dx: 8,
+              fill: "#333",
+            }),
+            Plot.ruleX([0]),
+          ],
+        });
+      } else if (chart === "city") {
+        const data = byCity(results);
+        node = Plot.plot({
+          marginLeft: 130,
+          height: Math.max(120, data.length * 22 + 40),
           x: { label: "Cases", grid: true },
           y: { label: null },
           marks: [
@@ -118,7 +142,7 @@ export function Visualize({ results }: { results: SearchResult[] }) {
   return (
     <div className="visualize">
       <div className="visualize-tabs" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {(["map", "court", "year"] as ChartType[]).map((c) => (
+        {(["map", "city", "court", "year"] as ChartType[]).map((c) => (
           <button
             key={c}
             onClick={() => setChart(c)}

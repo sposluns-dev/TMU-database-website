@@ -56,15 +56,36 @@ export function warmSearch() {
 
 // ── Filtering ─────────────────────────────────────────────────────────────────
 
+// Single-valued field (court, province, court type, area of law): the case has
+// one value. OR = value is among the selected; AND = every selected equals it
+// (so AND only matches when exactly that one value is selected).
+function matchSingle(
+  value: string | undefined,
+  selected: string[] | undefined,
+  mode: Filters["courtsMode"],
+): boolean {
+  if (!selected || !selected.length) return true;
+  const v = value ?? "";
+  return mode === "and" ? selected.every((s) => s === v) : selected.includes(v);
+}
+
+// Multi-valued field (subjects): the case has a list of tags.
+function matchMulti(
+  tags: string[] | undefined,
+  selected: string[] | undefined,
+  mode: Filters["subjectsMode"],
+): boolean {
+  if (!selected || !selected.length) return true;
+  const t = tags ?? [];
+  return mode === "and" ? selected.every((s) => t.includes(s)) : selected.some((s) => t.includes(s));
+}
+
 function matchesFilters(c: CaseMeta, f: Filters): boolean {
-  if (f.court && c.court !== f.court) return false;
-  if (f.province && (courtToProvince(c.court) ?? "Federal") !== f.province)
-    return false;
-  if (f.subjects && f.subjects.length &&
-      !(c.subjects ?? []).some((s) => f.subjects!.includes(s)))
-    return false;
-  if (f.courtType && c.court_type !== f.courtType) return false;
-  if (f.legalArea && c.legal_area !== f.legalArea) return false;
+  if (!matchSingle(c.court, f.courts, f.courtsMode)) return false;
+  if (!matchSingle(courtToProvince(c.court) ?? "Federal", f.provinces, f.provincesMode)) return false;
+  if (!matchSingle(c.court_type, f.courtTypes, f.courtTypesMode)) return false;
+  if (!matchSingle(c.legal_area, f.legalAreas, f.legalAreasMode)) return false;
+  if (!matchMulti(c.subjects, f.subjects, f.subjectsMode)) return false;
   if (f.dateFrom && c.date < f.dateFrom) return false;
   if (f.dateTo && c.date > f.dateTo) return false;
   return true;

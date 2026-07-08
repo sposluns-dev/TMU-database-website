@@ -428,3 +428,10 @@
         position: static;
     }
 }
+
+/* Case selection + CanLII link (added for export/viz selection feature) */
+.result-select { margin-right: .5rem; cursor: pointer; }
+.result-card.selected { outline: 2px solid #339999; outline-offset: 2px; }
+.result-table tr.selected { background: #e6f4f4; }
+.result-links { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; }
+.result-canlii { color: #267373; }
