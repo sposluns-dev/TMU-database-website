@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 
 // Dataset / data-access page, modelled on a2aj.ca/data: what the collection is,
 // its coverage, and the ways to access it (search, Hugging Face, downloads, MCP).
-// NOTE: confirm the Hugging Face URL and MCP endpoint below before publishing —
-// they are placeholders until the dataset repo / MCP server are live.
-const HF_DATASET = "https://huggingface.co/datasets/sposluns/tmu-canadian-caselaw";
+// NOTE: the MCP connector endpoint is still a placeholder until the server is live.
+const HF_DATASET = "https://huggingface.co/datasets/sposluns-tmu/tmu-canadian-caselaw";
+const HF_REPO_ID = "sposluns-tmu/tmu-canadian-caselaw";
 
 const heading = { fontFamily: "var(--font-heading)" } as const;
 const card = {
@@ -65,7 +65,24 @@ export function Dataset() {
         </p>
         <pre style={{ overflowX: "auto", background: "var(--code-bg, #f5f5f5)", padding: "0.75rem", borderRadius: 8 }}>
 {`from datasets import load_dataset
-ds = load_dataset("sposluns/tmu-canadian-caselaw")`}
+ds = load_dataset("${HF_REPO_ID}")`}
+        </pre>
+      </div>
+
+      <div style={card}>
+        <h3 style={heading}>REST API</h3>
+        <p>
+          Query the collection over Hugging Face's hosted datasets-server — free,
+          no key, CORS-enabled. Full-text search and paginated rows:
+        </p>
+        <pre style={{ overflowX: "auto", background: "var(--code-bg, #f5f5f5)", padding: "0.75rem", borderRadius: 8 }}>
+{`# Full-text search
+GET https://datasets-server.huggingface.co/search
+  ?dataset=${HF_REPO_ID}&config=cases&split=train&query=hate+speech
+
+# Paginated rows
+GET https://datasets-server.huggingface.co/rows
+  ?dataset=${HF_REPO_ID}&config=cases&split=train&offset=0&length=100`}
         </pre>
       </div>
 
