@@ -24,6 +24,11 @@ export const Navbar = () => {
                             </Link>
                         </li>
                         <li>
+                            <Link to="/dataset" className={linkClass("/dataset")}>
+                                Dataset
+                            </Link>
+                        </li>
+                        <li>
                             <Link to="/search" className={linkClass("/search")}>
                                 Search
                             </Link>
