@@ -1,5 +1,6 @@
-// Aggregation for charts — browser equivalent of rag.py's aggregate(), plus a
-// court→province mapping so results can drive the Canada choropleth map.
+// Aggregation for charts — browser equivalent of rag.py's aggregate(). Province
+// and city geography come from each case's enriched `province` / `city` fields
+// (see scripts/enrich_index.py), not from court codes.
 
 import type { SearchResult } from "./types";
 
@@ -8,39 +9,75 @@ export interface VizDatum {
   count: number;
 }
 
-// ── Court code → province (for the Canada map) ────────────────────────────────
-// Province names match the TopoJSON feature NAME property in canadaprovtopo.json.
-// Federal / national bodies have no province (mapped to null → "Federal" bucket).
-
-const COURT_PROVINCE: Record<string, string | null> = {
-  // Provincial / territorial superior & appellate courts
-  BCSC: "British Columbia",
-  BCCA: "British Columbia",
-  ONCA: "Ontario",
-  ONSC: "Ontario",
-  NSSC: "Nova Scotia",
-  NSCA: "Nova Scotia",
-  NSPC: "Nova Scotia",
-  // Federal courts & tribunals (national)
-  SCC: null,
-  FC: null,
-  FCA: null,
-  FCT: null,
-  TCC: null,
-  CMAC: null,
-  CHRT: null,
-  FPSLREB: null,
-  PSLRB: null,
-  RAD: null,
-  RPD: null,
-  RLLR: null,
-  SST: null,
-};
-
-export function courtToProvince(court: string): string | null {
-  if (court in COURT_PROVINCE) return COURT_PROVINCE[court];
-  return null; // unknown → treat as federal/national
+export interface CityDatum {
+  name: string;
+  lat: number;
+  lon: number;
+  count: number;
 }
+
+// ── City → coordinates ────────────────────────────────────────────────────────
+// Approximate lat/lon for the cities that appear in the dataset, used to plot
+// points on the Canada map. Country-scale placement — small offsets are fine.
+// Keyed by the exact city string stored in the index.
+const CITY_COORDS: Record<string, [number, number]> = {
+  Toronto: [43.65, -79.38],
+  Vancouver: [49.28, -123.12],
+  Ottawa: [45.42, -75.7],
+  Montreal: [45.5, -73.57],
+  Halifax: [44.65, -63.58],
+  Victoria: [48.43, -123.37],
+  "North Vancouver": [49.32, -123.07],
+  Winnipeg: [49.9, -97.14],
+  Quesnel: [52.98, -122.49],
+  Calgary: [51.05, -114.07],
+  "Quebec City": [46.81, -71.21],
+  Edmonton: [53.55, -113.49],
+  Langley: [49.1, -122.66],
+  Saskatoon: [52.13, -106.67],
+  Summerland: [49.6, -119.67],
+  Delta: [49.08, -123.06],
+  "St. John's": [47.56, -52.71],
+  Kingston: [44.23, -76.49],
+  Nanaimo: [49.17, -123.94],
+  "New Westminster": [49.21, -122.91],
+  Surrey: [49.19, -122.85],
+  Eckville: [52.35, -114.36],
+  Moncton: [46.09, -64.78],
+  Sechelt: [49.47, -123.76],
+  "100 Mile House": [51.64, -121.3],
+  Longueuil: [45.53, -73.52],
+  Kelowna: [49.89, -119.5],
+  Coquitlam: [49.28, -122.79],
+  Warkworth: [44.19, -77.88],
+  Wetaskiwin: [52.97, -113.37],
+  "Port Alberni": [49.23, -124.8],
+  Golden: [51.3, -116.96],
+  Agassiz: [49.24, -121.77],
+  "West Vancouver": [49.33, -123.16],
+  "Cache Creek": [50.81, -121.32],
+  Chilliwack: [49.16, -121.95],
+  London: [42.98, -81.24],
+  "Salmon Arm": [50.7, -119.27],
+  "Burns Lake": [54.23, -125.76],
+  Fernie: [49.5, -115.06],
+  Hamilton: [43.26, -79.87],
+  Chambly: [45.44, -73.28],
+  Sarnia: [42.97, -82.4],
+  Ajax: [43.85, -79.02],
+  Campbellford: [44.3, -77.8],
+  Vernon: [50.27, -119.27],
+  Chase: [50.82, -119.68],
+  Langford: [48.45, -123.51],
+  Abbotsford: [49.05, -122.33],
+  Malakwa: [50.93, -118.81],
+  Kamloops: [50.68, -120.34],
+  Nelson: [49.49, -117.29],
+  Courtenay: [49.69, -124.99],
+  Laval: [45.61, -73.71],
+  Windsor: [42.3, -83.02],
+  Regina: [50.45, -104.62],
+};
 
 // ── Generic aggregations ──────────────────────────────────────────────────────
 
@@ -79,35 +116,28 @@ export function byCity(results: SearchResult[]): VizDatum[] {
     .sort((a, b) => b.count - a.count);
 }
 
-/** Count by province for the Canada map. Federal cases counted under "Federal". */
-export function byProvince(results: SearchResult[]): VizDatum[] {
+/** Cities with known coordinates, for plotting points on the Canada map. */
+export function byCityGeo(results: SearchResult[]): CityDatum[] {
   const counts = new Map<string, number>();
   for (const r of results) {
-    const prov = courtToProvince(r.court) ?? "Federal";
-    counts.set(prov, (counts.get(prov) ?? 0) + 1);
+    const city = (r.city ?? "").trim();
+    if (!city || !(city in CITY_COORDS)) continue;
+    counts.set(city, (counts.get(city) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
+    .map(([name, count]) => {
+      const [lat, lon] = CITY_COORDS[name];
+      return { name, lat, lon, count };
+    })
     .sort((a, b) => b.count - a.count);
 }
 
-/** Province → count lookup (only real provinces; excludes Federal). */
+/** Province → count lookup for the Canada map (from each case's province field). */
 export function provinceCounts(results: SearchResult[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const r of results) {
-    const prov = courtToProvince(r.court);
+    const prov = (r.province ?? "").trim();
     if (prov) counts.set(prov, (counts.get(prov) ?? 0) + 1);
   }
   return counts;
-}
-
-export type VizDimension = "court" | "year" | "province";
-
-export function aggregate(
-  results: SearchResult[],
-  dimension: VizDimension,
-): VizDatum[] {
-  if (dimension === "court") return byCourt(results);
-  if (dimension === "year") return byYear(results);
-  return byProvince(results);
 }

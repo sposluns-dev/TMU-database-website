@@ -9,7 +9,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
 import { downloadCsv } from "../lib/export";
-import { courtToProvince } from "../lib/viz";
 import { COURT_TYPES, AREAS_OF_LAW, courtLabel } from "../lib/taxonomy";
 import { MultiFilter } from "./MultiFilter";
 import type { CasesIndex, Filters, MatchMode, SearchResult } from "../lib/types";
@@ -133,12 +132,14 @@ export function Search() {
   const yearMin = index?.facets.year_min ?? "";
   const yearMax = index?.facets.year_max ?? "";
 
-  // Provinces present in the data (derived from court codes) + Federal.
+  // Provinces present in the dataset (from each case's province field).
   const provinces = useMemo(() => {
     const set = new Set<string>();
-    for (const c of courts) set.add(courtToProvince(c) ?? "Federal");
+    for (const c of index?.cases ?? []) {
+      if (c.province) set.add(c.province);
+    }
     return [...set].sort();
-  }, [courts]);
+  }, [index]);
 
   function clearFilters() {
     setCourtSel([]); setCourtMode("or");

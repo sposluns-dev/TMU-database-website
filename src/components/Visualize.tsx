@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Plot from "@observablehq/plot";
 import * as topojson from "topojson-client";
 import type { SearchResult } from "../lib/types";
-import { byCourt, byYear, byCity, provinceCounts } from "../lib/viz";
+import { byCourt, byYear, byCity, byCityGeo, provinceCounts } from "../lib/viz";
 
 type ChartType = "map" | "city" | "court" | "year";
 
@@ -104,6 +104,7 @@ export function Visualize({ results }: { results: SearchResult[] }) {
         const provinces = topojson.feature(topo, topo.objects.canadaprov) as any;
         const mesh = topojson.mesh(topo, topo.objects.canadaprov);
         const counts = provinceCounts(results);
+        const cities = byCityGeo(results);
 
         node = Plot.plot({
           projection: { type: "conic-conformal", domain: provinces, rotate: [95, 0] },
@@ -111,9 +112,10 @@ export function Visualize({ results }: { results: SearchResult[] }) {
           color: {
             scheme: "blues",
             legend: true,
-            label: "Cases",
+            label: "Cases by province",
             unknown: "#e6e6e6", // provinces with no cases: visible neutral grey
           },
+          r: { range: [2, 22] }, // city bubble size by case count
           marks: [
             // Base layer: every province always drawn with a clear outline.
             Plot.geo(provinces, { fill: "#e6e6e6", stroke: "#9aa0a6", strokeWidth: 0.7 }),
@@ -126,6 +128,17 @@ export function Visualize({ results }: { results: SearchResult[] }) {
               strokeWidth: 0.7,
             }),
             Plot.geo(mesh, { stroke: "#9aa0a6", strokeWidth: 0.5 }),
+            // City points, sized by number of cases.
+            Plot.dot(cities, {
+              x: "lon",
+              y: "lat",
+              r: "count",
+              fill: "#E31837",
+              fillOpacity: 0.7,
+              stroke: "#fff",
+              strokeWidth: 0.6,
+              title: (d: any) => `${d.name}: ${d.count}`,
+            }),
           ],
         });
       }
