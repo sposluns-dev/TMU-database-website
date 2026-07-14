@@ -3,8 +3,8 @@
 // results are filtered by court/date and returned one per case. No embeddings,
 // no model download — semantic search was intentionally removed.
 
-import { courtToProvince } from "./viz";
 import { parseQuery, booleanCandidates, tokenize, loadTextIndex } from "./textsearch";
+import { courtType } from "./taxonomy";
 import type {
   CaseMeta,
   CasesIndex,
@@ -26,6 +26,12 @@ export function loadIndex(): Promise<CasesIndex> {
         `${DATA_BASE}/cases_index.json`,
       ).then((r) => r.json());
 
+      // court_type is a deterministic function of the court code (no tagging
+      // needed) — derive it up front so the court-type filter works standalone.
+      for (const c of index.cases) {
+        c.court_type = courtType(c.court);
+      }
+
       // Optionally merge tags from public/data/case_tags.json (may not exist).
       try {
         const res = await fetch(`${DATA_BASE}/case_tags.json`);
@@ -35,8 +41,8 @@ export function loadIndex(): Promise<CasesIndex> {
             const t = tags[String(c.rank)];
             if (t) {
               c.subjects = t.subjects;
-              c.court_type = t.court_type;
               c.legal_area = t.legal_area;
+              // court_type is code-derived above; tags don't override it.
             }
           }
         }
@@ -82,7 +88,7 @@ function matchMulti(
 
 function matchesFilters(c: CaseMeta, f: Filters): boolean {
   if (!matchSingle(c.court, f.courts, f.courtsMode)) return false;
-  if (!matchSingle(courtToProvince(c.court) ?? "Federal", f.provinces, f.provincesMode)) return false;
+  if (!matchSingle(c.province, f.provinces, f.provincesMode)) return false;
   if (!matchSingle(c.court_type, f.courtTypes, f.courtTypesMode)) return false;
   if (!matchSingle(c.legal_area, f.legalAreas, f.legalAreasMode)) return false;
   if (!matchMulti(c.subjects, f.subjects, f.subjectsMode)) return false;
