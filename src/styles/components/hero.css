@@ -39,6 +39,93 @@
     line-height: 1.8;
 }
 
+.hero-subtitle {
+    text-align: center;
+    max-width: 720px;
+    font-size: 1.25rem;
+}
+
+.dataset-highlights {
+    margin-top: 3rem;
+    width: 100%;
+}
+
+.dataset-highlights-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--color-text-light);
+    margin: 0 0 1.5rem 0;
+}
+
+.dataset-highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.highlight-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+}
+
+.highlight-number {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    line-height: 1;
+    color: var(--color-text);
+}
+
+.highlight-label {
+    font-size: 1rem;
+    color: var(--color-text-light);
+    line-height: 1.4;
+}
+
+.about-project {
+    margin-top: 3rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.about-project-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--color-text-light);
+    margin: 0 0 1rem 0;
+}
+
+.about-project-text {
+    font-size: 1.1rem;
+    color: var(--color-text-light);
+    line-height: 1.8;
+    text-align: left;
+}
+
+.about-project-text a {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .dataset-highlights-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
 
 @media (max-width: 768px) {
     .hero h1 {
