@@ -10,7 +10,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
 import { downloadCsv } from "../lib/export";
 import { courtToProvince } from "../lib/viz";
-import { SUBJECTS, COURT_TYPES, AREAS_OF_LAW, courtLabel } from "../lib/taxonomy";
+import { COURT_TYPES, AREAS_OF_LAW, courtLabel } from "../lib/taxonomy";
 import { MultiFilter } from "./MultiFilter";
 import type { CasesIndex, Filters, MatchMode, SearchResult } from "../lib/types";
 import "../styles/components/search.css";
@@ -45,8 +45,6 @@ export function Search() {
   const [courtTypeMode, setCourtTypeMode] = useState<MatchMode>("or");
   const [areaSel, setAreaSel] = useState<string[]>([]);
   const [areaMode, setAreaMode] = useState<MatchMode>("or");
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [subjectsMode, setSubjectsMode] = useState<MatchMode>("or");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   // Cases the user has ticked for export / visualization (by rank).
@@ -71,8 +69,6 @@ export function Search() {
       courtsMode: courtSel.length ? courtMode : undefined,
       provinces: provinceSel.length ? provinceSel : undefined,
       provincesMode: provinceSel.length ? provinceMode : undefined,
-      subjects: subjects.length ? subjects : undefined,
-      subjectsMode: subjects.length ? subjectsMode : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
       courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
       legalAreas: areaSel.length ? areaSel : undefined,
@@ -80,7 +76,7 @@ export function Search() {
       dateFrom: yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearTo ? `${yearTo}-12-31` : undefined,
     }),
-    [courtSel, courtMode, provinceSel, provinceMode, subjects, subjectsMode,
+    [courtSel, courtMode, provinceSel, provinceMode,
      courtTypeSel, courtTypeMode, areaSel, areaMode, yearFrom, yearTo],
   );
 
@@ -100,7 +96,7 @@ export function Search() {
   useEffect(() => {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, courtSel, courtMode, provinceSel, provinceMode, subjects, subjectsMode,
+  }, [index, courtSel, courtMode, provinceSel, provinceMode,
       courtTypeSel, courtTypeMode, areaSel, areaMode, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
@@ -147,7 +143,6 @@ export function Search() {
   function clearFilters() {
     setCourtSel([]); setCourtMode("or");
     setProvinceSel([]); setProvinceMode("or");
-    setSubjects([]); setSubjectsMode("or");
     setCourtTypeSel([]); setCourtTypeMode("or");
     setAreaSel([]); setAreaMode("or");
     setYearFrom("");
@@ -210,15 +205,6 @@ export function Search() {
             />
           </div>
         </div>
-
-        <MultiFilter
-          label="Subjects"
-          options={SUBJECTS.map((s) => ({ value: s, label: s }))}
-          selected={subjects}
-          onToggle={(v) => setSubjects((a) => toggle(a, v))}
-          mode={subjectsMode}
-          onMode={setSubjectsMode}
-        />
 
         <button className="filter-clear" onClick={clearFilters}>
           Clear filters

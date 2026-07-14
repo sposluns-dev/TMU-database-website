@@ -32,14 +32,15 @@ export const COURT_TYPES = [
 ] as const;
 
 export const AREAS_OF_LAW = [
-  "Constitutional",
-  "Criminal",
-  "Civil",
-  "Administrative",
-  "Human Rights",
-  "Immigration / Refugee",
-  "Labour / Employment",
-  "Tax",
+  "Administrative law",
+  "Civil litigation",
+  "Constitutional law",
+  "Criminal law",
+  "Education law",
+  "Family law",
+  "Human rights",
+  "Immigration law",
+  "Labour and employment law",
 ] as const;
 
 export type Subject = (typeof SUBJECTS)[number];
