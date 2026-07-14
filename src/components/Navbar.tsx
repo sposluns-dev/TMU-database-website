@@ -43,6 +43,11 @@ export const Navbar = () => {
                                 FAQ
                             </Link>
                         </li>
+                        <li>
+                            <Link to="/feedback" className={linkClass("/feedback")}>
+                                Feedback
+                            </Link>
+                        </li>
                     </ul>
                 </div>
             </nav>

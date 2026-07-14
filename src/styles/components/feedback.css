@@ -1,0 +1,82 @@
+@import "../variables.css";
+
+.feedback {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 20px 4rem;
+    color: var(--color-text);
+}
+
+.feedback-page-title {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    margin: 0 0 1rem 0;
+}
+
+.feedback-intro {
+    font-size: 1.1rem;
+    color: var(--color-text-light);
+    line-height: 1.7;
+    margin: 0 0 2rem 0;
+}
+
+.feedback-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.feedback-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.feedback-field label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+.feedback-field input,
+.feedback-field select,
+.feedback-field textarea {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    background: var(--color-white);
+    color: var(--color-text);
+}
+
+.feedback-field textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.feedback-field input:focus,
+.feedback-field select:focus,
+.feedback-field textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(38, 115, 115, 0.2);
+}
+
+.feedback-submit {
+    align-self: flex-start;
+    padding: 0.7rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-accent);
+    color: var(--color-white);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.feedback-submit:hover {
+    background: var(--color-turquoise-dark);
+}
