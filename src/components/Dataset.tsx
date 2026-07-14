@@ -20,7 +20,7 @@ export function Dataset() {
       <h1 style={heading}>Dataset</h1>
 
       <p>
-        This project curates <strong>481 Canadian upper-court and tribunal
+        This project curates <strong>1,599 Canadian court and tribunal
         decisions</strong> relating to antisemitism, religious freedom, and hate
         speech — drawn from the{" "}
         <a href="https://a2aj.ca/" target="_blank" rel="noopener noreferrer">
@@ -32,16 +32,13 @@ export function Dataset() {
 
       <h2 style={heading}>Coverage</h2>
       <ul>
-        <li>481 curated decisions (upper courts &amp; tribunals)</li>
+        <li>1,599 curated decisions across all court levels &amp; tribunals</li>
         <li>
           Courts include the Supreme Court of Canada, Federal Court, provincial
-          appellate and superior courts, and tribunals (CHRT, RPD/RAD)
+          appellate, superior, and lower courts, and tribunals (CHRT, RPD/RAD)
         </li>
-        <li>Decisions dating from 1912 to 2026</li>
+        <li>Decisions dating from 1879 to 2026</li>
       </ul>
-      <p style={{ color: "var(--muted, #666)", fontSize: "0.9rem" }}>
-        Lower-court decisions are being prepared and will be added later.
-      </p>
 
       <h2 style={heading}>Access</h2>
 

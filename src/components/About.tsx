@@ -1,5 +1,8 @@
 import "../styles/components/about.css";
 
+// TODO: replace with the deployed site URL once live.
+const siteUrl = "https://example.com/TMU-database-website/";
+
 const researchQuestions = [
     "How does Canadian law see Jewish identity?",
     "How do Canadian courts recognize and analyze antisemitism as a form of harm across different legal contexts, and when do they describe it explicitly as antisemitism versus more general concepts such as bias or discrimination?",
@@ -259,6 +262,17 @@ export function About() {
                     social, cultural, historical, and religious frameworks. These
                     dimensions fall outside the scope of this project and are not
                     reflected in the materials presented here.
+                </p>
+            </section>
+
+            {/* HOW TO CITE */}
+            <section className="about-section">
+                <h2 className="about-section-title">How to Cite</h2>
+                <p className="about-citation">
+                    Sari Graben, “Jewish Identity and Canadian Law” (2026), online:{" "}
+                    <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                        {siteUrl}
+                    </a>
                 </p>
             </section>
         </div>
