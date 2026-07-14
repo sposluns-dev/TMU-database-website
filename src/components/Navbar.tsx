@@ -14,7 +14,7 @@ export const Navbar = () => {
         <div className="site-nav">
             <nav className="site-nav-container">
                 <Link to="/" className="site-nav-logo">
-                    TMU Database
+                    JICL Database
                 </Link>
                 <div className="site-nav-right">
                     <ul className="site-nav-links">
@@ -36,6 +36,11 @@ export const Navbar = () => {
                         <li>
                             <Link to="/about" className={linkClass("/about")}>
                                 About
+                            </Link>
+                        </li>
+                        <li>
+                            <Link to="/faq" className={linkClass("/faq")}>
+                                FAQ
                             </Link>
                         </li>
                     </ul>

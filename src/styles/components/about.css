@@ -119,6 +119,11 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* How to cite */
+.about-citation {
+    font-style: italic;
+}
+
 /* Team */
 .about-team {
     list-style: none;

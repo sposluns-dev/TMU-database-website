@@ -7,6 +7,7 @@ import { Partners } from "./components/Partners.tsx";
 import { Search } from "./components/Search.tsx";
 import { Dataset } from "./components/Dataset.tsx";
 import { About } from "./components/About.tsx";
+import { FAQ } from "./components/FAQ.tsx";
 
 function HomePage() {
     return (
@@ -30,6 +31,7 @@ function App() {
                                 <Route path="/dataset" element={<Dataset />} />
                                 <Route path="/search" element={<Search />} />
                                 <Route path="/about" element={<About />} />
+                                <Route path="/faq" element={<FAQ />} />
                             </Routes>
                         </div>
                     </main>
