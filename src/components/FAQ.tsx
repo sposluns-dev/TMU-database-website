@@ -1,13 +1,9 @@
 import { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import "../styles/components/faq.css";
 
-// TODO: replace with the real feedback form URL once available.
-const feedbackUrl = "https://example.com/feedback";
-
 const FeedbackLink = ({ children }: { children: ReactNode }) => (
-    <a href={feedbackUrl} target="_blank" rel="noopener noreferrer">
-        {children}
-    </a>
+    <Link to="/feedback">{children}</Link>
 );
 
 type QA = { q: string; a: ReactNode };
