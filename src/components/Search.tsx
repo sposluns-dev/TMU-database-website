@@ -9,7 +9,8 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
 import { downloadCsv } from "../lib/export";
-import { COURT_TYPES, AREAS_OF_LAW, courtLabel } from "../lib/taxonomy";
+import { COURT_TYPES, courtLabel } from "../lib/taxonomy";
+import { USE_API, apiKeywords } from "../lib/api";
 import { MultiFilter } from "./MultiFilter";
 import { CaseDetail } from "./CaseDetail";
 import type { CasesIndex, Filters, MatchMode, SearchResult } from "../lib/types";
@@ -65,14 +66,22 @@ export function Search() {
   const [provinceMode, setProvinceMode] = useState<MatchMode>("or");
   const [courtTypeSel, setCourtTypeSel] = useState<string[]>([]);
   const [courtTypeMode, setCourtTypeMode] = useState<MatchMode>("or");
-  const [areaSel, setAreaSel] = useState<string[]>([]);
-  const [areaMode, setAreaMode] = useState<MatchMode>("or");
+  // Topic / entity dropdowns: the keyword vocabulary grouped by its `area`.
+  // Selecting an area filters to cases carrying any keyword in that area.
+  const [kwAreas, setKwAreas] = useState<{
+    topic: string[];
+    entity: string[];
+    byArea: Record<string, string[]>; // area -> keyword_ids
+  }>({ topic: [], entity: [], byArea: {} });
+  const [topicArea, setTopicArea] = useState("");
+  const [entityArea, setEntityArea] = useState("");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   // Cases the user has ticked for export / visualization (by case id).
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Case whose detail drawer is open, if any.
-  const [openCase, setOpenCase] = useState<string | null>(null);
+  // Case whose detail drawer is open, if any (with an optional section to focus).
+  const [openCase, setOpenCase] = useState<{ id: string; focus?: "notes" } | null>(null);
+  const openDetail = (id: string, focus?: "notes") => setOpenCase({ id, focus });
 
   const [sort, setSort] = useState<SortKey>("relevance");
   const [perPage, setPerPage] = useState(30);
@@ -92,6 +101,34 @@ export function Search() {
     loadIndex().then(setIndex);
   }, []);
 
+  // The controlled vocabulary, grouped by `area`, drives the two dropdowns.
+  // Only available in API mode (/keywords); the legacy static index has none.
+  useEffect(() => {
+    if (!USE_API) return;
+    apiKeywords()
+      .then((ks) => {
+        const byArea: Record<string, string[]> = {};
+        for (const k of ks) {
+          const a = (k.area ?? "").trim();
+          if (!a || a === "Practice Area (Tier 1)") continue;
+          (byArea[a] ??= []).push(k.keyword_id);
+        }
+        const areas = Object.keys(byArea);
+        setKwAreas({
+          topic: areas.filter((a) => !a.startsWith("Entities")).sort(),
+          entity: areas.filter((a) => a.startsWith("Entities")).sort(),
+          byArea,
+        });
+      })
+      .catch(() => {/* dropdowns stay empty if /keywords is unreachable */});
+  }, []);
+
+  // Selected areas -> the keyword_ids they contain (the `subjects` filter, OR'd).
+  const subjectIds = useMemo(() => [
+    ...(topicArea ? kwAreas.byArea[topicArea] ?? [] : []),
+    ...(entityArea ? kwAreas.byArea[entityArea] ?? [] : []),
+  ], [topicArea, entityArea, kwAreas]);
+
   const filters: Filters = useMemo(
     () => ({
       courts: courtSel.length ? courtSel : undefined,
@@ -100,13 +137,13 @@ export function Search() {
       provincesMode: provinceSel.length ? provinceMode : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
       courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
-      legalAreas: areaSel.length ? areaSel : undefined,
-      legalAreasMode: areaSel.length ? areaMode : undefined,
+      subjects: subjectIds.length ? subjectIds : undefined,
+      subjectsMode: subjectIds.length ? "or" : undefined,
       dateFrom: yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearTo ? `${yearTo}-12-31` : undefined,
     }),
     [courtSel, courtMode, provinceSel, provinceMode,
-     courtTypeSel, courtTypeMode, areaSel, areaMode, yearFrom, yearTo],
+     courtTypeSel, courtTypeMode, subjectIds, yearFrom, yearTo],
   );
 
   async function runSearch() {
@@ -130,7 +167,7 @@ export function Search() {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
-      courtTypeSel, courtTypeMode, areaSel, areaMode, yearFrom, yearTo]);
+      courtTypeSel, courtTypeMode, topicArea, entityArea, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
     const list = [...results];
@@ -178,16 +215,11 @@ export function Search() {
     return [...set].sort();
   }, [index]);
 
-  // Area-of-law options: prefer what the data actually contains.
-  const areas = index?.facets.practiceAreas?.length
-    ? index.facets.practiceAreas
-    : [...AREAS_OF_LAW];
-
   function clearFilters() {
     setCourtSel([]); setCourtMode("or");
     setProvinceSel([]); setProvinceMode("or");
     setCourtTypeSel([]); setCourtTypeMode("or");
-    setAreaSel([]); setAreaMode("or");
+    setTopicArea(""); setEntityArea("");
     setYearFrom("");
     setYearTo("");
   }
@@ -225,14 +257,33 @@ export function Search() {
           onMode={setCourtTypeMode}
         />
 
-        <MultiFilter
-          label="Area of law"
-          options={areas.map((a) => ({ value: a, label: a }))}
-          selected={areaSel}
-          onToggle={(v) => setAreaSel((a) => toggle(a, v))}
-          mode={areaMode}
-          onMode={setAreaMode}
-        />
+        <div className="filter-group">
+          <label className="filter-label" htmlFor="topic-select">Practice area / topic</label>
+          <select
+            id="topic-select"
+            value={topicArea}
+            onChange={(e) => setTopicArea(e.target.value)}
+          >
+            <option value="">All topics</option>
+            {kwAreas.topic.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label className="filter-label" htmlFor="entity-select">Entities</label>
+          <select
+            id="entity-select"
+            value={entityArea}
+            onChange={(e) => setEntityArea(e.target.value)}
+          >
+            <option value="">All entities</option>
+            {kwAreas.entity.map((a) => (
+              <option key={a} value={a}>{a.replace(/^Entities — /, "")}</option>
+            ))}
+          </select>
+        </div>
 
         <div className="filter-group">
           <label className="filter-label">Year range</label>
@@ -410,7 +461,6 @@ export function Search() {
                       onChange={() => toggleSelected(id)}
                     />
                   </label>
-                  {r.case_id && <span className="result-id">{r.case_id}</span>}
                   <span className="result-citation">{r.citation}</span>
                   <span className="result-court">{r.court}</span>
                 </div>
@@ -448,14 +498,15 @@ export function Search() {
                     ))}
                   </div>
                 )}
-                {r.snippet && <Snippet html={r.snippet} />}
+                {r.snippet
+                  ? <Snippet html={r.snippet} />
+                  : r.summary
+                  ? <p className="result-snippet result-snippet-plain">{r.summary}</p>
+                  : null}
                 <div className="result-links">
                   {r.case_id ? (
-                    <button
-                      className="result-open"
-                      onClick={() => setOpenCase(r.case_id!)}
-                    >
-                      Summary, issues & FIRAC →
+                    <button className="result-open" onClick={() => openDetail(r.case_id!)}>
+                      Summary, issues &amp; FIRAC →
                     </button>
                   ) : (
                     <a
@@ -474,6 +525,14 @@ export function Search() {
                     >
                       View on CanLII ↗
                     </a>
+                  )}
+                  {r.case_id && (
+                    <button
+                      className="result-notes"
+                      onClick={() => openDetail(r.case_id!, "notes")}
+                    >
+                      View Generation Notes →
+                    </button>
                   )}
                 </div>
               </li>
@@ -520,7 +579,7 @@ export function Search() {
                     <td>{r.practice_area ?? r.legal_area ?? ""}</td>
                     <td>
                       {r.case_id ? (
-                        <button className="link-button" onClick={() => setOpenCase(r.case_id!)}>
+                        <button className="link-button" onClick={() => openDetail(r.case_id!)}>
                           Detail →
                         </button>
                       ) : (
@@ -554,7 +613,11 @@ export function Search() {
       </main>
 
       {openCase && (
-        <CaseDetail caseId={openCase} onClose={() => setOpenCase(null)} />
+        <CaseDetail
+          caseId={openCase.id}
+          focus={openCase.focus}
+          onClose={() => setOpenCase(null)}
+        />
       )}
     </div>
   );

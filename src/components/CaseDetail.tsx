@@ -1,31 +1,61 @@
-// Case detail drawer — everything the database holds about one case.
+// Case detail drawer — the "Summary, issues & FIRAC" view for one case.
 //
-// Replaces the old static `data/cases/<rank>.html` pages: the content now comes
-// from GET /case/{case_id}, which is the only place the FIRAC analyses, the
+// Content comes from GET /case/{case_id}, the only place the FIRAC analyses, the
 // bilingual summaries and the resolved EN/FR keywords are available.
 //
+// A top control bar carries a Practice area line, an EN/FR language choice, and a
+// row of checkboxes that show/hide each section (Keywords, Summary, Defining
+// issues, FIRAC analysis, Full text, Generation notes). Section TITLES stay in
+// English for now; only the CONTENT (summary/résumé, keyword wording) follows the
+// EN/FR toggle.
+//
 // The judgment text is NOT fetched up front — some are hundreds of KB — so the
-// drawer opens immediately and pulls the text only when asked.
+// drawer opens immediately and pulls the text only when the Full text section is
+// shown.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiCase, type ApiCaseDetail, type ApiFirac } from "../lib/api";
 import "../styles/components/case-detail.css";
 
 interface Props {
   caseId: string;
   onClose: () => void;
+  /** Open with a particular section revealed and scrolled into view. */
+  focus?: "notes";
 }
 
 // /case/{id} returns keywords as objects; the list shape in ApiCase is the
 // search-result form. Narrow it here rather than widening the shared type.
 type KeywordObj = { keyword_id: string; en: string; fr: string | null; tier: number | null };
 
-export function CaseDetail({ caseId, onClose }: Props) {
+type SectionKey = "keywords" | "summary" | "issues" | "firac" | "text" | "notes";
+
+// Section titles are English by design (see file header).
+const SECTIONS: [SectionKey, string][] = [
+  ["keywords", "Keywords"],
+  ["summary", "Summary"],
+  ["issues", "Defining issues"],
+  ["firac", "FIRAC analysis"],
+  ["text", "Full text"],
+  ["notes", "Generation notes"],
+];
+
+export function CaseDetail({ caseId, onClose, focus }: Props) {
   const [data, setData] = useState<ApiCaseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
   const [openBlocks, setOpenBlocks] = useState<Set<number>>(new Set([1]));
+  const [lang, setLang] = useState<"en" | "fr">("en");
+  const [visible, setVisible] = useState<Record<SectionKey, boolean>>({
+    keywords: true,
+    summary: true,
+    issues: true,
+    firac: true,
+    text: false,
+    notes: focus === "notes",
+  });
+  const notesRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -39,6 +69,19 @@ export function CaseDetail({ caseId, onClose }: Props) {
       live = false;
     };
   }, [caseId]);
+
+  // Opening via "View Generation Notes" reveals that section and scrolls to it.
+  useEffect(() => {
+    if (focus === "notes") {
+      setVisible((v) => ({ ...v, notes: true }));
+    }
+  }, [caseId, focus]);
+
+  useEffect(() => {
+    if (visible.notes && focus === "notes" && data) {
+      notesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [visible.notes, focus, data]);
 
   // Esc closes the drawer, and the page behind it must not scroll with it.
   useEffect(() => {
@@ -71,8 +114,13 @@ export function CaseDetail({ caseId, onClose }: Props) {
       return n;
     });
 
+  const toggleSection = (key: SectionKey) =>
+    setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
+
   const keywords = (data?.keywords ?? []) as unknown as KeywordObj[];
   const place = [data?.city, data?.province].filter(Boolean).join(", ");
+  // The summary body follows the EN/FR toggle; résumé (FR) may be absent.
+  const summaryText = lang === "en" ? data?.summary : data?.resume;
 
   return (
     <div className="case-drawer-backdrop" onClick={onClose}>
@@ -107,40 +155,77 @@ export function CaseDetail({ caseId, onClose }: Props) {
                 {place && <span>{place}</span>}
                 {data.registry && <span>Registry: {data.registry}</span>}
               </div>
-              {data.practice_area && (
-                <div className="case-area">{data.practice_area}</div>
-              )}
             </header>
 
-            {keywords.length > 0 && (
+            {/* Practice area + EN/FR choice + which sections to show. */}
+            <div className="case-controls">
+              <div className="case-topline">
+                <span className="case-area">
+                  Practice area: {data.practice_area || "—"}
+                </span>
+                <div className="case-lang-toggle" role="group" aria-label="Language">
+                  {(["en", "fr"] as const).map((l) => (
+                    <button
+                      key={l}
+                      className={lang === l ? "active" : ""}
+                      aria-pressed={lang === l}
+                      onClick={() => setLang(l)}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="case-sections-toggle">
+                {SECTIONS.map(([key, label]) => (
+                  <label key={key} className="case-section-check">
+                    <input
+                      type="checkbox"
+                      checked={visible[key]}
+                      onChange={() => toggleSection(key)}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {visible.keywords && keywords.length > 0 && (
               <section className="case-section">
                 <h3>Keywords</h3>
                 <ul className="case-keywords">
-                  {keywords.map((k) => (
-                    <li key={k.keyword_id} className={`kw kw-tier-${k.tier ?? 0}`}>
-                      <span className="kw-en">{k.en}</span>
-                      {k.fr && <span className="kw-fr">{k.fr}</span>}
-                    </li>
-                  ))}
+                  {keywords.map((k) => {
+                    const primary = lang === "fr" ? k.fr ?? k.en : k.en;
+                    const secondary = lang === "fr" ? k.en : k.fr;
+                    return (
+                      <li key={k.keyword_id} className={`kw kw-tier-${k.tier ?? 0}`}>
+                        <span className="kw-en">{primary}</span>
+                        {secondary && <span className="kw-fr">{secondary}</span>}
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             )}
 
-            {data.summary && (
+            {visible.summary && (
               <section className="case-section">
-                <h3>Summary</h3>
-                <p className="case-prose">{data.summary}</p>
+                <h3>
+                  Summary <span className="case-lang">{lang.toUpperCase()}</span>
+                </h3>
+                {summaryText ? (
+                  <p className="case-prose" lang={lang}>{summaryText}</p>
+                ) : (
+                  <p className="case-prose case-muted">
+                    {lang === "fr"
+                      ? "No French résumé is available for this case."
+                      : "No English summary is available for this case."}
+                  </p>
+                )}
               </section>
             )}
 
-            {data.resume && (
-              <section className="case-section">
-                <h3>Résumé <span className="case-lang">FR</span></h3>
-                <p className="case-prose" lang="fr">{data.resume}</p>
-              </section>
-            )}
-
-            {data.defining_issues?.length > 0 && (
+            {visible.issues && (data.defining_issues?.length ?? 0) > 0 && (
               <section className="case-section">
                 <h3>Defining issues</h3>
                 <ol className="case-issues">
@@ -151,7 +236,7 @@ export function CaseDetail({ caseId, onClose }: Props) {
               </section>
             )}
 
-            {data.firac?.length > 0 && (
+            {visible.firac && (data.firac?.length ?? 0) > 0 && (
               <section className="case-section">
                 <h3>
                   FIRAC analysis{" "}
@@ -184,16 +269,95 @@ export function CaseDetail({ caseId, onClose }: Props) {
               </section>
             )}
 
-            <section className="case-section">
-              <h3>Full judgment</h3>
-              {text === null ? (
-                <button className="case-loadtext" onClick={loadText} disabled={loadingText}>
-                  {loadingText ? "Loading…" : "Load full text"}
-                </button>
-              ) : (
-                <pre className="case-text">{text}</pre>
-              )}
-            </section>
+            {visible.text && (
+              <section className="case-section">
+                <h3>Full text</h3>
+                {text === null ? (
+                  <button className="case-loadtext" onClick={loadText} disabled={loadingText}>
+                    {loadingText ? "Loading…" : "Load full text"}
+                  </button>
+                ) : (
+                  <pre className="case-text">{text}</pre>
+                )}
+              </section>
+            )}
+
+            {visible.notes && (
+              <section className="case-section" ref={notesRef}>
+                <h3>Generation notes</h3>
+                {data.generation_notes ? (
+                  <div className="case-notes">
+                    {data.generation_notes.name_verification && (
+                      <div className="case-note">
+                        <h4>Name verification</h4>
+                        <p className="case-prose">
+                          {data.generation_notes.name_verification.name_consistent
+                            ? "✓ Consistent with the document"
+                            : "⚠ Possible discrepancy"}
+                          {data.generation_notes.name_verification.name_in_document
+                            ? ` — “${data.generation_notes.name_verification.name_in_document}”`
+                            : ""}
+                        </p>
+                        {data.generation_notes.name_verification.discrepancy_note && (
+                          <p className="case-prose case-muted">
+                            {data.generation_notes.name_verification.discrepancy_note}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {data.generation_notes.keywords_rationale && (
+                      <div className="case-note">
+                        <h4>Keywords rationale</h4>
+                        <p className="case-prose">{data.generation_notes.keywords_rationale}</p>
+                      </div>
+                    )}
+                    {data.generation_notes.location_rationale && (
+                      <div className="case-note">
+                        <h4>Location rationale</h4>
+                        <p className="case-prose">{data.generation_notes.location_rationale}</p>
+                      </div>
+                    )}
+                    {data.generation_notes.registry_rationale && (
+                      <div className="case-note">
+                        <h4>Registry rationale</h4>
+                        <p className="case-prose">{data.generation_notes.registry_rationale}</p>
+                      </div>
+                    )}
+                    {Array.isArray(data.generation_notes.warnings) &&
+                      data.generation_notes.warnings.length > 0 && (
+                        <div className="case-note">
+                          <h4>Warnings</h4>
+                          <ul className="case-issues">
+                            {data.generation_notes.warnings.map((w, i) => (
+                              <li key={i}>{typeof w === "string" ? w : JSON.stringify(w)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    {Array.isArray(data.generation_notes.collisions) &&
+                      data.generation_notes.collisions.length > 0 && (
+                        <div className="case-note">
+                          <h4>Collisions</h4>
+                          <ul className="case-issues">
+                            {data.generation_notes.collisions.map((c, i) => (
+                              <li key={i}>{typeof c === "string" ? c : JSON.stringify(c)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    {data.generation_notes.model && (
+                      <p className="case-prose case-muted">
+                        Generated by {data.generation_notes.model}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="case-prose case-muted">
+                    No generation notes are recorded for this case.
+                  </p>
+                )}
+              </section>
+            )}
 
             {data.url && (
               <a

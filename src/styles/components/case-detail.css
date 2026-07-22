@@ -95,6 +95,87 @@
     font-size: 0.85rem;
 }
 
+/* ── Control bar: practice area, EN/FR, section toggles ──────────── */
+.case-controls {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-md);
+}
+
+.case-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* Inside the control bar the practice-area pill sits inline, no top margin. */
+.case-topline .case-area { margin-top: 0; }
+
+.case-lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.case-lang-toggle button {
+    border: none;
+    background: var(--color-white);
+    color: var(--color-text);
+    padding: 0.25rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.case-lang-toggle button.active {
+    background: var(--color-accent);
+    color: var(--color-white);
+}
+.case-lang-toggle button:hover:not(.active) { background: var(--color-gray-100); }
+
+.case-sections-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-gray-200);
+}
+.case-section-check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+.case-section-check input { cursor: pointer; }
+
+.case-muted {
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+/* ── Generation notes ────────────────────────────────────────────── */
+.case-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.case-note h4 {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    margin: 0 0 0.3rem;
+}
+
 /* ── Sections ────────────────────────────────────────────────────── */
 .case-section {
     margin-top: 1.75rem;

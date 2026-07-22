@@ -85,12 +85,32 @@ export interface ApiFirac {
   conclusion: string | null;
 }
 
+// Generation provenance for the AI enrichment (case_notes.notes). Every field
+// is optional — the server drops empties before storing the blob.
+export interface GenerationNotes {
+  name_verification?: {
+    name_consistent?: boolean;
+    name_in_document?: string;
+    citation_in_document?: string;
+    discrepancy_note?: string;
+  };
+  keywords_rationale?: string;
+  location_rationale?: string;
+  registry_rationale?: string;
+  collisions?: unknown[];
+  warnings?: unknown[];
+  completion_note?: string;
+  duplicate_note?: string;
+  model?: string;
+}
+
 export interface ApiCaseDetail extends ApiCase {
   registry: string | null;
   defining_issues: string[];
   text?: string;
   firac: ApiFirac[];
   keywords: never[]; // detail returns objects, not strings — see caseDetail()
+  generation_notes: GenerationNotes | null;
 }
 
 async function get<T>(path: string, params?: URLSearchParams): Promise<T> {

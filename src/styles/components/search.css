@@ -266,7 +266,15 @@
     font-size: 0.9rem;
     color: var(--color-text-light);
     line-height: 1.5;
+    /* Keep every card's excerpt to ~4-5 lines so the cards stay uniform. */
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
+/* Fallback excerpt (case summary) shown when there is no highlighted snippet. */
+.result-snippet-plain { font-style: italic; }
 
 .result-open {
     display: inline-block;
@@ -501,6 +509,7 @@
 
 /* Detail trigger rendered as a button but reading as a link. */
 button.result-open,
+button.result-notes,
 .link-button {
     border: none;
     background: none;
@@ -511,6 +520,14 @@ button.result-open,
 }
 
 button.result-open:hover,
+button.result-notes:hover,
 .link-button:hover {
     text-decoration: underline;
+}
+
+/* Generation-notes action reads as a quieter, secondary link. */
+button.result-notes {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
 }
