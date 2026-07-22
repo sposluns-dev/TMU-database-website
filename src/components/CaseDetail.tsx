@@ -7,8 +7,11 @@
 //             (name verification + the rationales), on its own.
 //
 // Both pull from GET /case/{case_id}; the judgment text is fetched only when the
-// Full text section is shown. Section titles stay English; only content
-// (summary/résumé, keyword wording) follows the EN/FR toggle.
+// Full text section is shown. The EN/FR choice makes the case view UNILINGUAL:
+// section titles switch language, and keywords show one language only. CONTENT is
+// translated only where a French version exists (summary -> résumé); defining
+// issues, FIRAC and full text keep their English content for now (titles still
+// switch).
 
 import { useEffect, useState } from "react";
 import { apiCase, type ApiCaseDetail, type ApiFirac } from "../lib/api";
@@ -26,15 +29,17 @@ interface Props {
 type KeywordObj = { keyword_id: string; en: string; fr: string | null; tier: number | null };
 
 type SectionKey = "keywords" | "summary" | "issues" | "firac" | "text";
+type Lang = "en" | "fr";
 
-// Section titles are English by design (see file header).
-const SECTIONS: [SectionKey, string][] = [
-  ["keywords", "Keywords"],
-  ["summary", "Summary"],
-  ["issues", "Defining issues"],
-  ["firac", "FIRAC analysis"],
-  ["text", "Full text"],
-];
+// Section labels per language (titles + checkboxes switch with the EN/FR choice).
+const SECTION_LABELS: Record<SectionKey, Record<Lang, string>> = {
+  keywords: { en: "Keywords", fr: "Mots-clés" },
+  summary: { en: "Summary", fr: "Résumé" },
+  issues: { en: "Defining issues", fr: "Questions en litige" },
+  firac: { en: "FIRAC analysis", fr: "Analyse FIRAC" },
+  text: { en: "Full text", fr: "Texte intégral" },
+};
+const SECTION_ORDER: SectionKey[] = ["keywords", "summary", "issues", "firac", "text"];
 
 export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
   const [data, setData] = useState<ApiCaseDetail | null>(null);
@@ -224,7 +229,8 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 <div className="case-controls">
                   <div className="case-topline">
                     <span className="case-area">
-                      Practice area: {data.practice_area || "—"}
+                      {lang === "fr" ? "Domaine de droit" : "Practice area"}:{" "}
+                      {data.practice_area || "—"}
                     </span>
                     <div className="case-lang-toggle" role="group" aria-label="Language">
                       {(["en", "fr"] as const).map((l) => (
@@ -240,14 +246,14 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                     </div>
                   </div>
                   <div className="case-sections-toggle">
-                    {SECTIONS.map(([key, label]) => (
+                    {SECTION_ORDER.map((key) => (
                       <label key={key} className="case-section-check">
                         <input
                           type="checkbox"
                           checked={visible[key]}
                           onChange={() => toggleSection(key)}
                         />
-                        <span>{label}</span>
+                        <span>{SECTION_LABELS[key][lang]}</span>
                       </label>
                     ))}
                   </div>
@@ -255,27 +261,21 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
 
                 {visible.keywords && keywords.length > 0 && (
                   <section className="case-section">
-                    <h3>Keywords</h3>
+                    <h3>{SECTION_LABELS.keywords[lang]}</h3>
                     <ul className="case-keywords">
-                      {keywords.map((k) => {
-                        const primary = lang === "fr" ? k.fr ?? k.en : k.en;
-                        const secondary = lang === "fr" ? k.en : k.fr;
-                        return (
-                          <li key={k.keyword_id} className={`kw kw-tier-${k.tier ?? 0}`}>
-                            <span className="kw-en">{primary}</span>
-                            {secondary && <span className="kw-fr">{secondary}</span>}
-                          </li>
-                        );
-                      })}
+                      {keywords.map((k) => (
+                        <li key={k.keyword_id} className={`kw kw-tier-${k.tier ?? 0}`}>
+                          {/* Unilingual: one language only, per the EN/FR choice. */}
+                          <span className="kw-en">{lang === "fr" ? k.fr ?? k.en : k.en}</span>
+                        </li>
+                      ))}
                     </ul>
                   </section>
                 )}
 
                 {visible.summary && (
                   <section className="case-section">
-                    <h3>
-                      Summary <span className="case-lang">{lang.toUpperCase()}</span>
-                    </h3>
+                    <h3>{SECTION_LABELS.summary[lang]}</h3>
                     {summaryText ? (
                       <p className="case-prose" lang={lang}>{summaryText}</p>
                     ) : (
@@ -290,7 +290,7 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
 
                 {visible.issues && (data.defining_issues?.length ?? 0) > 0 && (
                   <section className="case-section">
-                    <h3>Defining issues</h3>
+                    <h3>{SECTION_LABELS.issues[lang]}</h3>
                     <ol className="case-issues">
                       {data.defining_issues.map((issue, i) => (
                         <li key={i}>{issue}</li>
@@ -302,9 +302,12 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 {visible.firac && (data.firac?.length ?? 0) > 0 && (
                   <section className="case-section">
                     <h3>
-                      FIRAC analysis{" "}
+                      {SECTION_LABELS.firac[lang]}{" "}
                       <span className="case-count">
-                        {data.firac.length} issue{data.firac.length === 1 ? "" : "s"}
+                        {data.firac.length}{" "}
+                        {lang === "fr"
+                          ? data.firac.length === 1 ? "question" : "questions"
+                          : data.firac.length === 1 ? "issue" : "issues"}
                       </span>
                     </h3>
                     {/* Blocks are ordered by seq; that order is the only thing
@@ -334,10 +337,12 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
 
                 {visible.text && (
                   <section className="case-section">
-                    <h3>Full text</h3>
+                    <h3>{SECTION_LABELS.text[lang]}</h3>
                     {text === null ? (
                       <button className="case-loadtext" onClick={loadText} disabled={loadingText}>
-                        {loadingText ? "Loading…" : "Load full text"}
+                        {loadingText
+                          ? (lang === "fr" ? "Chargement…" : "Loading…")
+                          : (lang === "fr" ? "Charger le texte intégral" : "Load full text")}
                       </button>
                     ) : (
                       <pre className="case-text">{text}</pre>
