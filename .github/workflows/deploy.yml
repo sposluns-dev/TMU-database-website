@@ -24,6 +24,13 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run build
+        env:
+          # Base URL of the search service on Cloud Run (Prototype-Runbook.md §3.6).
+          # Empty locally — vite.config.ts proxies /api to localhost:8080 in dev.
+          # Stored as a repo variable so the URL can change without a code commit:
+          # Settings → Secrets and variables → Actions → Variables → New variable
+          #   name: API_BASE   value: https://tmu-case-db-xxxxxxxxxx.northamerica-northeast2.run.app
+          VITE_API_BASE: ${{ vars.API_BASE }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

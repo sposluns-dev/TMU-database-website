@@ -5,6 +5,7 @@
 
 import { parseQuery, booleanCandidates, tokenize, loadTextIndex } from "./textsearch";
 import { courtType } from "./taxonomy";
+import { USE_API, apiFacets, apiSearch } from "./api";
 import type {
   CaseMeta,
   CasesIndex,
@@ -21,6 +22,30 @@ let indexPromise: Promise<CasesIndex> | null = null;
 
 export function loadIndex(): Promise<CasesIndex> {
   if (!indexPromise) {
+    // API mode: the facets come from the server and NOTHING is held client-side.
+    // `cases` stays empty — that is the whole point of moving off the 3.2 MB
+    // in-browser index — so anything deriving options from it must read
+    // `facets` instead.
+    if (USE_API) {
+      indexPromise = apiFacets().then((f) => ({
+        cases: [],
+        facets: {
+          courts: f.courts.map((c) => c.value),
+          provinces: f.provinces.map((p) => p.value),
+          practiceAreas: f.practice_areas.map((a) => a.value),
+          year_min: f.year_min ?? "",
+          year_max: f.year_max ?? "",
+          counts: Object.fromEntries(
+            [...f.courts, ...f.provinces, ...f.practice_areas].map((x) => [
+              x.value,
+              x.count,
+            ]),
+          ),
+          total: f.courts.reduce((n, c) => n + c.count, 0),
+        },
+      }));
+      return indexPromise;
+    }
     indexPromise = (async () => {
       const index: CasesIndex = await fetch(
         `${DATA_BASE}/cases_index.json`,
@@ -57,6 +82,7 @@ export function loadIndex(): Promise<CasesIndex> {
 
 /** Preload the text index (call when the user focuses the search box). */
 export function warmSearch() {
+  if (USE_API) return; // nothing to warm — the index lives on the server
   loadTextIndex();
 }
 
@@ -155,6 +181,12 @@ export type SearchMode = "browse" | "keyword";
 export interface SearchResponse {
   results: SearchResult[];
   mode: SearchMode;
+  /** Matches in the whole corpus, which may exceed `results.length`. API only. */
+  total?: number;
+  /** Controlled terms the query was understood as, e.g. ["freedom of religion"]. */
+  expandedTo?: string[];
+  /** Set when the API could not be reached and the request returned nothing. */
+  error?: string;
 }
 
 /**
@@ -169,6 +201,28 @@ export async function search(
 ): Promise<SearchResponse> {
   const trimmed = query.trim();
 
+  // ── API path ───────────────────────────────────────────────────────────────
+  // Ranking is hybrid BM25 (case name + full judgment text) plus a controlled-tag
+  // boost, with synonym expansion done server-side — see server/app.py. Results
+  // arrive already ordered by relevance; Search.tsx re-sorts only when the user
+  // picks a different sort key.
+  if (USE_API) {
+    try {
+      const { results, total, expandedTo } = await apiSearch(query, filters, opts);
+      return { results, mode: trimmed ? "keyword" : "browse", total, expandedTo };
+    } catch (e) {
+      // A cold Cloud Run instance or a network blip should surface as an empty
+      // result with a message, not an unhandled rejection in the render tree.
+      return {
+        results: [],
+        mode: trimmed ? "keyword" : "browse",
+        total: 0,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+
+  // ── Legacy in-browser path (VITE_USE_API=false) ────────────────────────────
   if (!trimmed) {
     const results = await keywordSearch("", filters, opts.k ?? 600);
     return { results, mode: "browse" };
