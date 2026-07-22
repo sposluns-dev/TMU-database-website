@@ -160,6 +160,17 @@
     font-style: italic;
 }
 
+/* Small tag at the top of the standalone generation-notes view. */
+.case-view-tag {
+    display: inline-block;
+    margin: 0 0 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-accent);
+}
+
 /* ── Generation notes ────────────────────────────────────────────── */
 .case-notes {
     display: flex;

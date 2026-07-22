@@ -79,9 +79,11 @@ export function Search() {
   const [yearTo, setYearTo] = useState("");
   // Cases the user has ticked for export / visualization (by case id).
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Case whose detail drawer is open, if any (with an optional section to focus).
-  const [openCase, setOpenCase] = useState<{ id: string; focus?: "notes" } | null>(null);
-  const openDetail = (id: string, focus?: "notes") => setOpenCase({ id, focus });
+  // Case whose detail drawer is open, if any. "case" = summary/issues/FIRAC;
+  // "notes" = the separate generation-notes view.
+  const [openCase, setOpenCase] = useState<{ id: string; view: "case" | "notes" } | null>(null);
+  const openDetail = (id: string, view: "case" | "notes" = "case") =>
+    setOpenCase({ id, view });
 
   const [sort, setSort] = useState<SortKey>("relevance");
   const [perPage, setPerPage] = useState(30);
@@ -615,7 +617,7 @@ export function Search() {
       {openCase && (
         <CaseDetail
           caseId={openCase.id}
-          focus={openCase.focus}
+          view={openCase.view}
           onClose={() => setOpenCase(null)}
         />
       )}
