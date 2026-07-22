@@ -73,7 +73,8 @@ export function Search() {
     entity: string[];
     byArea: Record<string, string[]>; // area -> keyword_ids
   }>({ topic: [], entity: [], byArea: {} });
-  const [topicArea, setTopicArea] = useState("");
+  const [practiceAreaSel, setPracticeAreaSel] = useState(""); // tier-1 practice_area
+  const [topicArea, setTopicArea] = useState("");             // keyword doctrine area
   const [entityArea, setEntityArea] = useState("");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
@@ -139,13 +140,14 @@ export function Search() {
       provincesMode: provinceSel.length ? provinceMode : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
       courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
+      legalAreas: practiceAreaSel ? [practiceAreaSel] : undefined,
       subjects: subjectIds.length ? subjectIds : undefined,
       subjectsMode: subjectIds.length ? "or" : undefined,
       dateFrom: yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearTo ? `${yearTo}-12-31` : undefined,
     }),
     [courtSel, courtMode, provinceSel, provinceMode,
-     courtTypeSel, courtTypeMode, subjectIds, yearFrom, yearTo],
+     courtTypeSel, courtTypeMode, practiceAreaSel, subjectIds, yearFrom, yearTo],
   );
 
   async function runSearch() {
@@ -169,7 +171,7 @@ export function Search() {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
-      courtTypeSel, courtTypeMode, topicArea, entityArea, yearFrom, yearTo]);
+      courtTypeSel, courtTypeMode, practiceAreaSel, topicArea, entityArea, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
     const list = [...results];
@@ -221,7 +223,7 @@ export function Search() {
     setCourtSel([]); setCourtMode("or");
     setProvinceSel([]); setProvinceMode("or");
     setCourtTypeSel([]); setCourtTypeMode("or");
-    setTopicArea(""); setEntityArea("");
+    setPracticeAreaSel(""); setTopicArea(""); setEntityArea("");
     setYearFrom("");
     setYearTo("");
   }
@@ -260,7 +262,21 @@ export function Search() {
         />
 
         <div className="filter-group">
-          <label className="filter-label" htmlFor="topic-select">Practice area / topic</label>
+          <label className="filter-label" htmlFor="practice-select">Practice area</label>
+          <select
+            id="practice-select"
+            value={practiceAreaSel}
+            onChange={(e) => setPracticeAreaSel(e.target.value)}
+          >
+            <option value="">All practice areas</option>
+            {(index?.facets.practiceAreas ?? []).map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label className="filter-label" htmlFor="topic-select">Topic</label>
           <select
             id="topic-select"
             value={topicArea}
