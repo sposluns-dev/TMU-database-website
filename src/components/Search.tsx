@@ -11,8 +11,31 @@ import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
 import { downloadCsv } from "../lib/export";
 import { COURT_TYPES, AREAS_OF_LAW, courtLabel } from "../lib/taxonomy";
 import { MultiFilter } from "./MultiFilter";
+import { CaseDetail } from "./CaseDetail";
 import type { CasesIndex, Filters, MatchMode, SearchResult } from "../lib/types";
 import "../styles/components/search.css";
+
+// Stable identity for a result. The API returns the real case_id ("UC13"); the
+// legacy static index only has a positional rank, so fall back to it.
+const idOf = (r: SearchResult) => r.case_id ?? String(r.rank);
+
+// The API returns FTS snippets with <mark> around the matched terms. React
+// escapes strings, so render the highlight explicitly rather than showing
+// literal "<mark>" to the user. Only <mark> is honoured — everything else is
+// escaped, so judgment text can never inject markup.
+function Snippet({ html }: { html: string }) {
+  const parts = html.split(/(<\/?mark>)/);
+  let on = false;
+  return (
+    <p className="result-snippet">
+      {parts.map((p, i) => {
+        if (p === "<mark>") { on = true; return null; }
+        if (p === "</mark>") { on = false; return null; }
+        return on ? <mark key={i}>{p}</mark> : <span key={i}>{p}</span>;
+      })}
+    </p>
+  );
+}
 
 const MODE_LABEL: Record<SearchMode, string> = {
   browse: "Browsing all cases",
@@ -46,8 +69,10 @@ export function Search() {
   const [areaMode, setAreaMode] = useState<MatchMode>("or");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
-  // Cases the user has ticked for export / visualization (by rank).
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  // Cases the user has ticked for export / visualization (by case id).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Case whose detail drawer is open, if any.
+  const [openCase, setOpenCase] = useState<string | null>(null);
 
   const [sort, setSort] = useState<SortKey>("relevance");
   const [perPage, setPerPage] = useState(30);
@@ -57,6 +82,11 @@ export function Search() {
 
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  // Matches in the whole corpus — may exceed results.length, which is capped.
+  const [total, setTotal] = useState<number | null>(null);
+  // Controlled terms the backend understood the query as.
+  const [expandedTo, setExpandedTo] = useState<string[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     loadIndex().then(setIndex);
@@ -83,9 +113,13 @@ export function Search() {
     setLoading(true);
     try {
       // Fetch all matches; the "Show" dropdown (perPage) controls how many display.
-      const { results: r, mode: m } = await search(query, filters, { k: 1000 });
+      const { results: r, mode: m, total: t, expandedTo: x, error } =
+        await search(query, filters, { k: 1000 });
       setResults(r);
       setMode(m);
+      setTotal(t ?? null);
+      setExpandedTo(x ?? []);
+      setSearchError(error ?? null);
     } finally {
       setLoading(false);
     }
@@ -109,22 +143,22 @@ export function Search() {
   const shown = useMemo(() => sorted.slice(0, perPage), [sorted, perPage]);
 
   // Selection: export / visualize the ticked cases, or all results if none ticked.
-  const toggleSelected = (rank: number) =>
+  const toggleSelected = (id: string) =>
     setSelected((prev) => {
       const n = new Set(prev);
-      n.has(rank) ? n.delete(rank) : n.add(rank);
+      n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
-  const allShownSelected = shown.length > 0 && shown.every((r) => selected.has(r.rank));
+  const allShownSelected = shown.length > 0 && shown.every((r) => selected.has(idOf(r)));
   const toggleSelectShown = () =>
     setSelected((prev) => {
       const n = new Set(prev);
-      if (allShownSelected) shown.forEach((r) => n.delete(r.rank));
-      else shown.forEach((r) => n.add(r.rank));
+      if (allShownSelected) shown.forEach((r) => n.delete(idOf(r)));
+      else shown.forEach((r) => n.add(idOf(r)));
       return n;
     });
   const chosen = useMemo(
-    () => (selected.size ? sorted.filter((r) => selected.has(r.rank)) : sorted),
+    () => (selected.size ? sorted.filter((r) => selected.has(idOf(r))) : sorted),
     [selected, sorted],
   );
 
@@ -133,13 +167,21 @@ export function Search() {
   const yearMax = index?.facets.year_max ?? "";
 
   // Provinces present in the dataset (from each case's province field).
+  // API mode serves these from /facets; the legacy path derives them from the
+  // downloaded index (where `cases` is populated).
   const provinces = useMemo(() => {
+    if (index?.facets.provinces?.length) return index.facets.provinces;
     const set = new Set<string>();
     for (const c of index?.cases ?? []) {
       if (c.province) set.add(c.province);
     }
     return [...set].sort();
   }, [index]);
+
+  // Area-of-law options: prefer what the data actually contains.
+  const areas = index?.facets.practiceAreas?.length
+    ? index.facets.practiceAreas
+    : [...AREAS_OF_LAW];
 
   function clearFilters() {
     setCourtSel([]); setCourtMode("or");
@@ -185,7 +227,7 @@ export function Search() {
 
         <MultiFilter
           label="Area of law"
-          options={AREAS_OF_LAW.map((a) => ({ value: a, label: a }))}
+          options={areas.map((a) => ({ value: a, label: a }))}
           selected={areaSel}
           onToggle={(v) => setAreaSel((a) => toggle(a, v))}
           mode={areaMode}
@@ -256,11 +298,32 @@ export function Search() {
           </div>
         )}
 
+        {searchError && (
+          <p className="search-error">
+            Could not reach the search service — {searchError}
+          </p>
+        )}
+
+        {/* Make the query expansion visible: the user typed "religious freedom"
+            and the backend searched the whole "freedom of religion" ring. */}
+        {expandedTo.length > 0 && (
+          <p className="search-expanded">
+            Understood as:{" "}
+            {expandedTo.map((t) => (
+              <span key={t} className="expanded-term">{t}</span>
+            ))}
+          </p>
+        )}
+
         <div className="search-toolbar">
           <span className="result-count">
             {loading
               ? "…"
-              : `${shown.length} shown of ${sorted.length} result${sorted.length === 1 ? "" : "s"}`}
+              : // `total` is the match count across the whole corpus; `sorted`
+                // is capped at k, so say so rather than under-reporting.
+                `${shown.length} shown of ${(total ?? sorted.length).toLocaleString()} result${
+                  (total ?? sorted.length) === 1 ? "" : "s"
+                }${total != null && total > sorted.length ? ` (top ${sorted.length} ranked)` : ""}`}
             {selected.size > 0 && ` · ${selected.size} selected`}
           </span>
           <div className="toolbar-actions">
@@ -329,43 +392,80 @@ export function Search() {
         {/* ── Results ────────────────────────────────────────────── */}
         {view === "cards" && (
           <ul className="result-list">
-            {shown.map((r) => (
-              <li key={r.rank} className={`result-card${selected.has(r.rank) ? " selected" : ""}`}>
+            {shown.map((r) => {
+              const id = idOf(r);
+              // The practice area is also present in `keywords` (it is the
+              // tier-1 term). Show it once, as its own pill.
+              const topics = (r.keywords ?? r.subjects ?? []).filter(
+                (k) => k !== r.practice_area,
+              );
+              const place = [r.city, r.province].filter(Boolean).join(", ");
+              return (
+              <li key={id} className={`result-card${selected.has(id) ? " selected" : ""}`}>
                 <div className="result-head">
                   <label className="result-select" title="Select for export / visualization">
                     <input
                       type="checkbox"
-                      checked={selected.has(r.rank)}
-                      onChange={() => toggleSelected(r.rank)}
+                      checked={selected.has(id)}
+                      onChange={() => toggleSelected(id)}
                     />
                   </label>
+                  {r.case_id && <span className="result-id">{r.case_id}</span>}
                   <span className="result-citation">{r.citation}</span>
                   <span className="result-court">{r.court}</span>
                 </div>
                 <h3 className="result-name">{r.case_name}</h3>
                 <div className="result-meta">
                   <span>{r.date}</span>
-                  {r.distance != null && (
-                    <span className="result-score">score {(1 - r.distance).toFixed(2)}</span>
+                  {place && <span className="result-place">{place}</span>}
+                  {r.level && (
+                    <span className="result-level">
+                      {r.level === "upper" ? "Upper court" : "Lower court"}
+                    </span>
+                  )}
+                  {r.relevance != null && (
+                    <span className="result-score" title="Hybrid BM25 + keyword-tag score">
+                      score {r.relevance.toFixed(1)}
+                    </span>
                   )}
                 </div>
-                {(r.subjects?.length || r.legal_area) && (
+                {(topics.length > 0 || r.practice_area || r.legal_area) && (
                   <div className="result-tags">
-                    {r.legal_area && <span className="tag">{r.legal_area}</span>}
-                    {r.subjects?.map((s) => (
-                      <span key={s} className="tag">{s}</span>
+                    {(r.practice_area ?? r.legal_area) && (
+                      <span className="tag tag-area">
+                        {r.practice_area ?? r.legal_area}
+                      </span>
+                    )}
+                    {topics.map((s, i) => (
+                      <span
+                        key={s}
+                        className="tag"
+                        // The French term for the same concept, same index.
+                        title={r.mots_cles?.[i]}
+                      >
+                        {s}
+                      </span>
                     ))}
                   </div>
                 )}
-                {r.snippet && <p className="result-snippet">{r.snippet}…</p>}
+                {r.snippet && <Snippet html={r.snippet} />}
                 <div className="result-links">
-                  <a
-                    className="result-open"
-                    href={`${import.meta.env.BASE_URL}data/cases/${r.rank}.html`}
-                    target="_blank" rel="noopener noreferrer"
-                  >
-                    Open full case ↗
-                  </a>
+                  {r.case_id ? (
+                    <button
+                      className="result-open"
+                      onClick={() => setOpenCase(r.case_id!)}
+                    >
+                      Summary, issues & FIRAC →
+                    </button>
+                  ) : (
+                    <a
+                      className="result-open"
+                      href={`${import.meta.env.BASE_URL}data/cases/${r.rank}.html`}
+                      target="_blank" rel="noopener noreferrer"
+                    >
+                      Open full case ↗
+                    </a>
+                  )}
                   {r.url && (
                     <a
                       className="result-canlii"
@@ -377,7 +477,8 @@ export function Search() {
                   )}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
 
@@ -394,30 +495,42 @@ export function Search() {
                       title="Select all shown"
                     />
                   </th>
-                  <th>Citation</th><th>Case</th><th>Court</th><th>Date</th><th></th>
+                  <th>ID</th><th>Citation</th><th>Case</th><th>Court</th>
+                  <th>Date</th><th>Location</th><th>Area of law</th><th></th>
                 </tr>
               </thead>
               <tbody>
-                {shown.map((r) => (
-                  <tr key={r.rank} className={selected.has(r.rank) ? "selected" : ""}>
+                {shown.map((r) => {
+                  const id = idOf(r);
+                  return (
+                  <tr key={id} className={selected.has(id) ? "selected" : ""}>
                     <td>
                       <input
                         type="checkbox"
-                        checked={selected.has(r.rank)}
-                        onChange={() => toggleSelected(r.rank)}
+                        checked={selected.has(id)}
+                        onChange={() => toggleSelected(id)}
                       />
                     </td>
+                    <td className="mono">{r.case_id ?? r.rank}</td>
                     <td className="mono">{r.citation}</td>
                     <td>{r.case_name}</td>
                     <td>{r.court}</td>
                     <td>{r.date}</td>
+                    <td>{[r.city, r.province].filter(Boolean).join(", ")}</td>
+                    <td>{r.practice_area ?? r.legal_area ?? ""}</td>
                     <td>
-                      <a
-                        href={`${import.meta.env.BASE_URL}data/cases/${r.rank}.html`}
-                        target="_blank" rel="noopener noreferrer"
-                      >
-                        Open ↗
-                      </a>
+                      {r.case_id ? (
+                        <button className="link-button" onClick={() => setOpenCase(r.case_id!)}>
+                          Detail →
+                        </button>
+                      ) : (
+                        <a
+                          href={`${import.meta.env.BASE_URL}data/cases/${r.rank}.html`}
+                          target="_blank" rel="noopener noreferrer"
+                        >
+                          Open ↗
+                        </a>
+                      )}
                       {r.url && (
                         <>
                           {" · "}
@@ -428,7 +541,8 @@ export function Search() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -438,6 +552,10 @@ export function Search() {
           <p className="no-results">No cases match your search and filters.</p>
         )}
       </main>
+
+      {openCase && (
+        <CaseDetail caseId={openCase} onClose={() => setOpenCase(null)} />
+      )}
     </div>
   );
 }

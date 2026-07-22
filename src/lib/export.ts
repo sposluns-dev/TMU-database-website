@@ -4,19 +4,25 @@
 import type { SearchResult } from "./types";
 
 const FIELDS: (keyof SearchResult)[] = [
-  "rank",
+  "case_id",
   "citation",
   "case_name",
   "court",
   "date",
   "city",
   "province",
+  "practice_area",
+  "keywords",
+  "mots_cles",
+  "summary",
   "url",
 ];
 
 function escapeCsv(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const s = String(value);
+  // keywords / mots_cles are arrays — flatten with the same separator the
+  // source vocabulary CSV uses, so the export round-trips legibly.
+  const s = Array.isArray(value) ? value.join(" | ") : String(value);
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

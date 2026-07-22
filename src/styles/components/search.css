@@ -435,3 +435,82 @@
 .result-table tr.selected { background: #e6f4f4; }
 .result-links { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; }
 .result-canlii { color: #267373; }
+
+/* ── API-era additions ───────────────────────────────────────────── */
+
+/* Stable case identifier (UC13 / LC1), shown beside the citation. */
+.result-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    background: var(--color-gray-100);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-md);
+    padding: 0.1rem 0.4rem;
+}
+
+.result-place,
+.result-level {
+    color: var(--color-text-secondary);
+}
+
+.result-level {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* The primary tier-1 practice area, distinguished from the topic keywords. */
+.tag-area {
+    background: var(--color-accent);
+    color: var(--color-white);
+    border-color: var(--color-accent);
+}
+
+/* FTS highlight inside result snippets. */
+.result-snippet mark {
+    background: #ffeaa0;
+    color: inherit;
+    padding: 0 0.1em;
+    border-radius: 2px;
+}
+
+/* "Understood as: freedom of religion" — shows the synonym expansion. */
+.search-expanded {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.expanded-term {
+    display: inline-block;
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    padding: 0.1rem 0.45rem;
+    margin-left: 0.35rem;
+    color: var(--color-text);
+}
+
+.search-error {
+    background: #fdf1f1;
+    border: 1px solid #e6c3c3;
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.85rem;
+    font-size: 0.9rem;
+    color: #8a3232;
+}
+
+/* Detail trigger rendered as a button but reading as a link. */
+button.result-open,
+.link-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+button.result-open:hover,
+.link-button:hover {
+    text-decoration: underline;
+}
