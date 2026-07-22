@@ -23,14 +23,15 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+      # VITE_API_BASE is NOT set here on purpose. It comes from the committed
+      # .env.production, which Vite loads automatically for a production build.
+      #
+      # This used to read `VITE_API_BASE: ${{ vars.API_BASE }}`. That is a trap:
+      # if the repo variable is unset, it exports an EMPTY string, and an explicit
+      # process env var beats .env.production — so the build silently produced a
+      # frontend with no backend URL, which then 404s against github.io/api/search.
+      # Leaving it out means the committed default always wins.
       - run: npm run build
-        env:
-          # Base URL of the search service on Cloud Run (Prototype-Runbook.md §3.6).
-          # Empty locally — vite.config.ts proxies /api to localhost:8080 in dev.
-          # Stored as a repo variable so the URL can change without a code commit:
-          # Settings → Secrets and variables → Actions → Variables → New variable
-          #   name: API_BASE   value: https://tmu-case-db-xxxxxxxxxx.northamerica-northeast2.run.app
-          VITE_API_BASE: ${{ vars.API_BASE }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
