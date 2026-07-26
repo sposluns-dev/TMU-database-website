@@ -122,6 +122,13 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
     }
   }
 
+  // Name the download after the citation ("2026 YKSC 46.txt"), not the internal
+  // LC/UC id, which means nothing outside this database. Characters a filesystem
+  // would choke on become "-"; a case with no citation keeps the id as fallback.
+  const downloadName = `${
+    data?.citation?.trim().replace(/[\\/:*?"<>|]+/g, "-") || caseId
+  }.txt`;
+
   async function downloadText() {
     const t = await ensureText();
     if (t == null) return;
@@ -129,7 +136,7 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${caseId}.txt`;
+    a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     a.remove();
