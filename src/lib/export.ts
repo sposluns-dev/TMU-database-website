@@ -63,52 +63,36 @@ export function downloadCsv(
 export type CitationFormat = "csv" | "json";
 
 /**
- * One row per case. `citation` is what the source gave us; `mcgill` is the
- * formatted citation. Both are kept so the export doubles as an audit trail —
- * `warnings` carries anything the formatter flagged (unverified court
- * abbreviation, year mismatch, language mismatch).
+ * The formatted citations, in result order. This export is citations and
+ * nothing else — the case metadata (court, date, keywords, summary…) is what
+ * toCsv/downloadCsv above is for. The formatter's `warnings` are deliberately
+ * not carried here; call mcgillCitation() directly if you want the diagnostics.
  */
-export interface CitationRow {
-  case_id: string;
-  mcgill: string;
-  case_name: string;
-  citation: string;
-  court: string;
-  date: string;
-  form: string;
-  warnings: string;
+export function citationsFor(results: SearchResult[]): string[] {
+  return results.map((r) => mcgillCitation(r).text);
 }
 
-export function toCitationRows(results: SearchResult[]): CitationRow[] {
-  return results.map((r) => {
-    const cite = mcgillCitation(r);
-    return {
-      case_id: r.case_id ?? String(r.rank),
-      mcgill: cite.text,
-      case_name: r.case_name,
-      citation: r.citation,
-      court: r.court,
-      date: r.date,
-      form: cite.form,
-      warnings: cite.warnings.join(" | "),
-    };
-  });
+/** Plain text, one citation per line — what "Copy Citations" puts on the clipboard. */
+export function citationsToText(results: SearchResult[]): string {
+  return citationsFor(results).join("\n");
 }
 
-const CITATION_FIELDS: (keyof CitationRow)[] = [
-  "case_id", "mcgill", "case_name", "citation", "court", "date", "form", "warnings",
-];
-
+/**
+ * Two columns: the case id and the citation. The id is kept because a bare
+ * column of citations can't be joined back to anything — drop it to a single
+ * column if the spreadsheet is only ever a paste source.
+ */
 export function citationsToCsv(results: SearchResult[]): string {
-  const rows = toCitationRows(results);
+  const rows = results.map((r) => [r.case_id ?? String(r.rank), mcgillCitation(r).text]);
   return [
-    CITATION_FIELDS.join(","),
-    ...rows.map((row) => CITATION_FIELDS.map((f) => escapeCsv(row[f])).join(",")),
+    "case_id,citation",
+    ...rows.map((cols) => cols.map(escapeCsv).join(",")),
   ].join("\n");
 }
 
+/** A flat list of citation strings. */
 export function citationsToJson(results: SearchResult[]): string {
-  return JSON.stringify(toCitationRows(results), null, 2);
+  return JSON.stringify(citationsFor(results), null, 2);
 }
 
 export function downloadCitations(

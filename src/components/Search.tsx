@@ -15,6 +15,7 @@ import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
 import {
   downloadCsv,
   downloadCitations,
+  citationsToText,
   copyText,
   type CitationFormat,
 } from "../lib/export";
@@ -93,6 +94,10 @@ const Visualize = lazy(() =>
 
 type SortKey = "relevance" | "date_desc" | "date_asc" | "title";
 type View = "cards" | "table";
+
+// Sentinel for the toolbar's bulk-copy button, which shares the per-card
+// "Copied ✓" state. No case id can collide with it.
+const LIST_COPY_ID = "__citation_list__";
 
 export function Search() {
   const [index, setIndex] = useState<CasesIndex | null>(null);
@@ -285,13 +290,18 @@ export function Search() {
     [selected, sorted],
   );
 
-  // Copy one case's McGill citation. Italics can't survive the clipboard as
-  // plain text, so this copies `.text`; the card renders `.segments` italicised.
+  // Copy as plain text. Italics can't survive the clipboard, so the card copies
+  // `.text` while rendering `.segments` italicised.
+  const flashCopied = (id: string) => {
+    setCopiedId(id);
+    window.setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1600);
+  };
   const copyCitation = async (r: SearchResult, id: string) => {
-    if (await copyText(mcgillCitation(r).text)) {
-      setCopiedId(id);
-      window.setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1600);
-    }
+    if (await copyText(mcgillCitation(r).text)) flashCopied(id);
+  };
+  // The whole chosen set, one citation per line.
+  const copyCitationList = async (rs: SearchResult[]) => {
+    if (await copyText(citationsToText(rs))) flashCopied(LIST_COPY_ID);
   };
 
   const courts = index?.facets.courts ?? [];
@@ -546,10 +556,9 @@ export function Search() {
                 : `Visualize${selected.size ? ` (${selected.size})` : ""}`}
             </button>
             <button onClick={() => downloadCsv(chosen)} disabled={!chosen.length}>
-              Export CSV{selected.size ? ` (${selected.size})` : ""}
+              Export CSV - Metadata{selected.size ? ` (${selected.size})` : ""}
             </button>
-            {/* McGill citations only, in either format — the full-record dump
-                above is unchanged. Toggle sits left of the button it governs. */}
+            {/* Citations only. The toggle sits left of the button it governs. */}
             <div className="view-toggle cite-format" role="group" aria-label="Citation export format">
               {(["csv", "json"] as CitationFormat[]).map((f) => (
                 <button
@@ -568,6 +577,15 @@ export function Search() {
               title={`Export McGill citations as ${citeFormat.toUpperCase()}`}
             >
               Export Citations{selected.size ? ` (${selected.size})` : ""}
+            </button>
+            <button
+              onClick={() => copyCitationList(chosen)}
+              disabled={!chosen.length}
+              title="Copy every citation to the clipboard as plain text, one per line"
+            >
+              {copiedId === LIST_COPY_ID
+                ? "Copied ✓"
+                : `Copy Citations${selected.size ? ` (${selected.size})` : ""}`}
             </button>
           </div>
         </div>
