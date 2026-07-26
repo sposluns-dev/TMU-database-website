@@ -185,7 +185,13 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 <p className="case-view-tag">Generation notes</p>
               )}
               <div className="case-idline">
-                <span className="case-id">{data.case_id}</span>
+                {/* The internal LC/UC id is a database handle, not a legal
+                    reference, so it stays in the generation-notes view (where
+                    it is useful for tracing a record) and is left off the
+                    reader-facing view, which identifies a case by citation. */}
+                {view === "notes" && (
+                  <span className="case-id">{data.case_id}</span>
+                )}
                 <span className="case-citation">{data.citation}</span>
                 <span className={`case-level case-level-${data.level}`}>
                   {data.level === "upper" ? "Upper court" : "Lower court"}

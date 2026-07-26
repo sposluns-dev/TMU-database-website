@@ -12,7 +12,13 @@
 
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
-import { downloadCsv } from "../lib/export";
+import {
+  downloadCsv,
+  downloadCitations,
+  copyText,
+  type CitationFormat,
+} from "../lib/export";
+import { mcgillCitation } from "../lib/citation";
 import { COURT_TYPES, courtLabel } from "../lib/taxonomy";
 import { USE_API, apiKeywords } from "../lib/api";
 import { MultiFilter } from "./MultiFilter";
@@ -126,6 +132,10 @@ export function Search() {
   const [yearOn, setYearOn] = useState(true);
   // Cases the user has ticked for export / visualization (by case id).
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // McGill citation export format, and the id of the card whose "Copy citation"
+  // was just used (drives the transient "Copied" label).
+  const [citeFormat, setCiteFormat] = useState<CitationFormat>("csv");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   // Case whose detail drawer is open, if any. "case" = summary/issues/FIRAC;
   // "notes" = the separate generation-notes view.
   const [openCase, setOpenCase] = useState<{ id: string; view: "case" | "notes" } | null>(null);
@@ -274,6 +284,15 @@ export function Search() {
     () => (selected.size ? sorted.filter((r) => selected.has(idOf(r))) : sorted),
     [selected, sorted],
   );
+
+  // Copy one case's McGill citation. Italics can't survive the clipboard as
+  // plain text, so this copies `.text`; the card renders `.segments` italicised.
+  const copyCitation = async (r: SearchResult, id: string) => {
+    if (await copyText(mcgillCitation(r).text)) {
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1600);
+    }
+  };
 
   const courts = index?.facets.courts ?? [];
   const yearMin = index?.facets.year_min ?? "";
@@ -529,6 +548,27 @@ export function Search() {
             <button onClick={() => downloadCsv(chosen)} disabled={!chosen.length}>
               Export CSV{selected.size ? ` (${selected.size})` : ""}
             </button>
+            {/* McGill citations only, in either format — the full-record dump
+                above is unchanged. Toggle sits left of the button it governs. */}
+            <div className="view-toggle cite-format" role="group" aria-label="Citation export format">
+              {(["csv", "json"] as CitationFormat[]).map((f) => (
+                <button
+                  key={f}
+                  className={citeFormat === f ? "active" : ""}
+                  onClick={() => setCiteFormat(f)}
+                  aria-pressed={citeFormat === f}
+                >
+                  {f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => downloadCitations(chosen, citeFormat)}
+              disabled={!chosen.length}
+              title={`Export McGill citations as ${citeFormat.toUpperCase()}`}
+            >
+              Export Citations{selected.size ? ` (${selected.size})` : ""}
+            </button>
           </div>
         </div>
 
@@ -552,6 +592,7 @@ export function Search() {
                 (k) => k !== r.practice_area,
               );
               const place = [r.city, r.province].filter(Boolean).join(", ");
+              const cite = mcgillCitation(r);
               return (
               <li key={id} className={`result-card${selected.has(id) ? " selected" : ""}`}>
                 <div className="result-head">
@@ -635,7 +676,21 @@ export function Search() {
                       View Generation Notes →
                     </button>
                   )}
+                  <button
+                    className="result-cite"
+                    onClick={() => copyCitation(r, id)}
+                    title={cite.text}
+                  >
+                    {copiedId === id ? "Copied ✓" : "Copy Citation"}
+                  </button>
                 </div>
+                {/* The citation the button copies, with § 3.3 italics. Drop this
+                    block if the card gets too tall — nothing else needs it. */}
+                <p className="result-cite-line">
+                  {cite.segments.map((seg, i) =>
+                    seg.italic ? <em key={i}>{seg.text}</em> : <span key={i}>{seg.text}</span>,
+                  )}
+                </p>
               </li>
               );
             })}

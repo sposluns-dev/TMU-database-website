@@ -292,8 +292,19 @@
 .toolbar-actions {
     display: flex;
     align-items: center;
+    /* Wraps rather than clipping: the row carries two segmented toggles plus
+       three buttons, which overflows a narrow viewport otherwise. */
+    flex-wrap: wrap;
     gap: 0.75rem;
     font-size: 0.9rem;
+}
+/* Segmented toggles keep their intrinsic width — shrinking them cuts the label
+   ("Table" → "Tab", "JSON" → "JSO"). */
+.toolbar-actions .view-toggle {
+    flex: 0 0 auto;
+}
+.toolbar-actions .view-toggle button {
+    white-space: nowrap;
 }
 .toolbar-actions select {
     padding: 0.3rem 0.4rem;
@@ -390,7 +401,8 @@
    rules left are the <button> resets further down. */
 .result-open,
 .result-canlii,
-.result-notes {
+.result-notes,
+.result-cite {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--color-accent);
@@ -398,8 +410,20 @@
 }
 .result-open:hover,
 .result-canlii:hover,
-.result-notes:hover {
+.result-notes:hover,
+.result-cite:hover {
     text-decoration: underline;
+}
+
+/* The formatted McGill citation under each card. Italics come from <em> in the
+   markup (§ 3.3 requires the parties and the v/c italicised), so this only sets
+   the frame. `user-select: all` makes a click-drag grab the whole citation. */
+.result-cite-line {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-gray-600, #4b5563);
+    user-select: all;
 }
 
 /* ── Mode bar + auto-detected mode pill ──────────────────────────── */
