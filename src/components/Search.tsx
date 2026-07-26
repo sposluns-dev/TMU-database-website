@@ -290,16 +290,12 @@ export function Search() {
     [selected, sorted],
   );
 
-  // Copy as plain text. Italics can't survive the clipboard, so the card copies
-  // `.text` while rendering `.segments` italicised.
+  // Copy the whole chosen set as plain text, one citation per line. Italics
+  // can't survive the clipboard; the cards render `.segments` italicised.
   const flashCopied = (id: string) => {
     setCopiedId(id);
     window.setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1600);
   };
-  const copyCitation = async (r: SearchResult, id: string) => {
-    if (await copyText(mcgillCitation(r).text)) flashCopied(id);
-  };
-  // The whole chosen set, one citation per line.
   const copyCitationList = async (rs: SearchResult[]) => {
     if (await copyText(citationsToText(rs))) flashCopied(LIST_COPY_ID);
   };
@@ -558,7 +554,15 @@ export function Search() {
             <button onClick={() => downloadCsv(chosen)} disabled={!chosen.length}>
               Export CSV - Metadata{selected.size ? ` (${selected.size})` : ""}
             </button>
-            {/* Citations only. The toggle sits left of the button it governs. */}
+            {/* Citations only. The format toggle sits to the RIGHT of the button
+                it governs, reading as "Export Citations … as CSV / JSON". */}
+            <button
+              onClick={() => downloadCitations(chosen, citeFormat)}
+              disabled={!chosen.length}
+              title={`Export McGill citations as ${citeFormat.toUpperCase()}`}
+            >
+              Export Citations{selected.size ? ` (${selected.size})` : ""}
+            </button>
             <div className="view-toggle cite-format" role="group" aria-label="Citation export format">
               {(["csv", "json"] as CitationFormat[]).map((f) => (
                 <button
@@ -571,13 +575,6 @@ export function Search() {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => downloadCitations(chosen, citeFormat)}
-              disabled={!chosen.length}
-              title={`Export McGill citations as ${citeFormat.toUpperCase()}`}
-            >
-              Export Citations{selected.size ? ` (${selected.size})` : ""}
-            </button>
             <button
               onClick={() => copyCitationList(chosen)}
               disabled={!chosen.length}
@@ -694,16 +691,9 @@ export function Search() {
                       View Generation Notes →
                     </button>
                   )}
-                  <button
-                    className="result-cite"
-                    onClick={() => copyCitation(r, id)}
-                    title={cite.text}
-                  >
-                    {copiedId === id ? "Copied ✓" : "Copy Citation"}
-                  </button>
                 </div>
-                {/* The citation the button copies, with § 3.3 italics. Drop this
-                    block if the card gets too tall — nothing else needs it. */}
+                {/* The McGill citation, with § 3.3 italics. Selectable so it can
+                    be dragged out by hand; bulk copying is the toolbar's job. */}
                 <p className="result-cite-line">
                   {cite.segments.map((seg, i) =>
                     seg.italic ? <em key={i}>{seg.text}</em> : <span key={i}>{seg.text}</span>,

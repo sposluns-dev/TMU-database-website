@@ -401,8 +401,7 @@
    rules left are the <button> resets further down. */
 .result-open,
 .result-canlii,
-.result-notes,
-.result-cite {
+.result-notes {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--color-accent);
@@ -410,14 +409,14 @@
 }
 .result-open:hover,
 .result-canlii:hover,
-.result-notes:hover,
-.result-cite:hover {
+.result-notes:hover {
     text-decoration: underline;
 }
 
-/* The formatted McGill citation under each card. Italics come from <em> in the
-   markup (§ 3.3 requires the parties and the v/c italicised), so this only sets
-   the frame. `user-select: all` makes a click-drag grab the whole citation. */
+/* The formatted McGill citation under each card — display only; copying in bulk
+   is the toolbar's "Copy Citations". Italics come from <em> in the markup (§ 3.3
+   requires the parties and the v/c italicised), so this only sets the frame.
+   `user-select: all` makes a single click select the whole citation. */
 .result-cite-line {
     margin: 0.5rem 0 0;
     font-size: 0.85rem;
