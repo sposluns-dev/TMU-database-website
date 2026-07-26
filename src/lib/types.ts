@@ -62,6 +62,14 @@ export interface Filters {
   provincesMode?: MatchMode;
   subjects?: string[];
   subjectsMode?: MatchMode;
+  /**
+   * Keyword groups: OR *within* each group, AND *across* groups — "a
+   * hate-speech case that is also a family-law case". `subjects` above is a
+   * single flat list and so can only express all-of or any-of; it stays
+   * populated (as the union) for the legacy in-browser index, which has no
+   * grouped equivalent. When this is set, the API path uses it instead.
+   */
+  subjectGroups?: string[][];
   courtTypes?: string[];
   courtTypesMode?: MatchMode;
   legalAreas?: string[];

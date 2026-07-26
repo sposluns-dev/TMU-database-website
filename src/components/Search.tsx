@@ -103,18 +103,21 @@ export function Search() {
     entity: string[];
     byArea: Record<string, TreeTerm[]>; // area -> its terms
   }>({ topic: [], entity: [], byArea: {} });
-  const [practiceAreaSel, setPracticeAreaSel] = useState(""); // tier-1 practice_area
-  const [topicArea, setTopicArea] = useState("");             // keyword doctrine area
+  // Practice area stays a single-select dropdown: practice_area is one column on
+  // the case, so a case has exactly one — multi-select with an Any/All toggle
+  // would offer an "All" that can never match.
+  const [practiceAreaSel, setPracticeAreaSel] = useState("");
+  // Topic (keyword doctrine areas) is multi-select with an Any/All toggle.
+  const [topicSel, setTopicSel] = useState<string[]>([]);
+  const [topicMode, setTopicMode] = useState<MatchMode>("or");
   // Entities are picked term-by-term (KeywordTree), not a whole area at a time.
   const [entitySel, setEntitySel] = useState<string[]>([]);
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
-  // Per-section on/off switches for the four single-control filters. Unchecking
-  // one drops it from the query but keeps whatever was picked, so a filter can
-  // be parked and brought back without re-selecting it. Default on, so a fresh
-  // page behaves exactly as it did before these existed.
+  // On/off switches for the sections that are a single control rather than a
+  // checkbox list. Unchecking one drops it from the query but keeps whatever
+  // was picked, so a filter can be parked and brought back.
   const [practiceOn, setPracticeOn] = useState(true);
-  const [topicOn, setTopicOn] = useState(true);
   const [entityOn, setEntityOn] = useState(true);
   const [yearOn, setYearOn] = useState(true);
   // Cases the user has ticked for export / visualization (by case id).
@@ -173,12 +176,25 @@ export function Search() {
   }, []);
 
   // Selected areas -> the keyword_ids they contain (the `subjects` filter, OR'd).
-  const subjectIds = useMemo(() => [
-    ...(topicOn && topicArea
-      ? (kwAreas.byArea[topicArea] ?? []).map((t) => t.id)
-      : []),
-    ...(entityOn ? entitySel : []),
-  ], [topicOn, topicArea, entityOn, entitySel, kwAreas]);
+  // Keyword filtering as groups: OR within a group, AND across groups.
+  //   Topic "Any (OR)" — every selected area pooled into ONE group, so a case
+  //                      matching any of them qualifies.
+  //   Topic "All (AND)" — each area is its OWN group, so a case must touch
+  //                      every area picked (not carry every keyword in them).
+  //   Entities         — always its own group, so it intersects with Topic
+  //                      rather than widening it.
+  const subjectGroups = useMemo(() => {
+    const topicIds = (a: string) => (kwAreas.byArea[a] ?? []).map((t) => t.id);
+    const groups: string[][] =
+      topicMode === "and"
+        ? topicSel.map(topicIds).filter((g) => g.length)
+        : [topicSel.flatMap(topicIds)].filter((g) => g.length);
+    if (entityOn && entitySel.length) groups.push(entitySel);
+    return groups;
+  }, [topicSel, topicMode, entityOn, entitySel, kwAreas]);
+
+  // Flat union, kept for the legacy in-browser index (no grouped equivalent).
+  const subjectIds = useMemo(() => subjectGroups.flat(), [subjectGroups]);
 
   const filters: Filters = useMemo(
     () => ({
@@ -190,12 +206,14 @@ export function Search() {
       courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
       legalAreas: practiceOn && practiceAreaSel ? [practiceAreaSel] : undefined,
       subjects: subjectIds.length ? subjectIds : undefined,
-      subjectsMode: subjectIds.length ? "or" : undefined,
+      subjectsMode: subjectIds.length ? topicMode : undefined,
+      subjectGroups: subjectGroups.length ? subjectGroups : undefined,
       dateFrom: yearOn && yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearOn && yearTo ? `${yearTo}-12-31` : undefined,
     }),
     [courtSel, courtMode, provinceSel, provinceMode,
-     courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, subjectIds,
+     courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel,
+     subjectIds, subjectGroups, topicMode,
      yearOn, yearFrom, yearTo],
   );
 
@@ -220,7 +238,7 @@ export function Search() {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
-      courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, topicOn, topicArea,
+      courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, topicSel, topicMode,
       entityOn, entitySel, yearOn, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
@@ -273,12 +291,14 @@ export function Search() {
     setCourtSel([]); setCourtMode("or");
     setProvinceSel([]); setProvinceMode("or");
     setCourtTypeSel([]); setCourtTypeMode("or");
-    setPracticeAreaSel(""); setTopicArea(""); setEntitySel([]);
+    setPracticeAreaSel("");
+    setTopicSel([]); setTopicMode("or");
+    setEntitySel([]);
     setYearFrom("");
     setYearTo("");
     // Back to the default state, which is every section switched on and empty --
     // otherwise "Clear filters" would leave sections greyed out with no value.
-    setPracticeOn(true); setTopicOn(true); setEntityOn(true); setYearOn(true);
+    setPracticeOn(true); setEntityOn(true); setYearOn(true);
   }
 
   return (
@@ -332,23 +352,14 @@ export function Search() {
           </select>
         </div>
 
-        <div className="filter-group">
-          <FilterHead
-            label="Topic" htmlFor="topic-select"
-            on={topicOn} onChange={setTopicOn}
-          />
-          <select
-            id="topic-select"
-            disabled={!topicOn}
-            value={topicArea}
-            onChange={(e) => setTopicArea(e.target.value)}
-          >
-            <option value="">All topics</option>
-            {kwAreas.topic.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
+        <MultiFilter
+          label="Topic"
+          options={kwAreas.topic.map((a) => ({ value: a, label: a }))}
+          selected={topicSel}
+          onToggle={(v) => setTopicSel((a) => toggle(a, v))}
+          mode={topicMode}
+          onMode={setTopicMode}
+        />
 
         <KeywordTree
           label="Entities"

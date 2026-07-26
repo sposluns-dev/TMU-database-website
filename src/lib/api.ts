@@ -185,7 +185,13 @@ export function filtersToParams(
   areas?.forEach((v) => p.append("practice_area", v));
 
   // Subjects are the controlled vocabulary: keyword_ids, genuinely multi-valued.
-  if (filters.subjects?.length) {
+  // Grouped form wins when present: each group becomes one `keyword_group`
+  // (OR within), and the server ANDs the groups together. The flat form can
+  // only say all-of or any-of across one pooled list.
+  const groups = filters.subjectGroups?.filter((g) => g.length);
+  if (groups?.length) {
+    groups.forEach((g) => p.append("keyword_group", g.join(",")));
+  } else if (filters.subjects?.length) {
     filters.subjects.forEach((v) => p.append("keyword", v));
     p.set("keyword_mode", filters.subjectsMode === "and" ? "and" : "or");
   }
