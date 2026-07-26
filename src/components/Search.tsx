@@ -44,6 +44,35 @@ const MODE_LABEL: Record<SearchMode, string> = {
 };
 
 // Toggle a value in/out of a string[] (for the multi-select filters).
+// Header row for a single-control filter: a checkbox that switches the filter
+// on/off, plus the label. The checkbox is deliberately NOT wrapped around the
+// label -- the label keeps its `htmlFor` so clicking it still focuses the
+// control, and the checkbox carries its own accessible name instead.
+function FilterHead({
+  label,
+  htmlFor,
+  on,
+  onChange,
+}: {
+  label: string;
+  htmlFor?: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <div className="filter-head">
+      <input
+        type="checkbox"
+        className="filter-toggle"
+        checked={on}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-label={`Apply the ${label} filter`}
+      />
+      <label className="filter-label" htmlFor={htmlFor}>{label}</label>
+    </div>
+  );
+}
+
 const toggle = (arr: string[], v: string) =>
   arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
@@ -78,6 +107,14 @@ export function Search() {
   const [entityArea, setEntityArea] = useState("");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
+  // Per-section on/off switches for the four single-control filters. Unchecking
+  // one drops it from the query but keeps whatever was picked, so a filter can
+  // be parked and brought back without re-selecting it. Default on, so a fresh
+  // page behaves exactly as it did before these existed.
+  const [practiceOn, setPracticeOn] = useState(true);
+  const [topicOn, setTopicOn] = useState(true);
+  const [entityOn, setEntityOn] = useState(true);
+  const [yearOn, setYearOn] = useState(true);
   // Cases the user has ticked for export / visualization (by case id).
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Case whose detail drawer is open, if any. "case" = summary/issues/FIRAC;
@@ -128,9 +165,9 @@ export function Search() {
 
   // Selected areas -> the keyword_ids they contain (the `subjects` filter, OR'd).
   const subjectIds = useMemo(() => [
-    ...(topicArea ? kwAreas.byArea[topicArea] ?? [] : []),
-    ...(entityArea ? kwAreas.byArea[entityArea] ?? [] : []),
-  ], [topicArea, entityArea, kwAreas]);
+    ...(topicOn && topicArea ? kwAreas.byArea[topicArea] ?? [] : []),
+    ...(entityOn && entityArea ? kwAreas.byArea[entityArea] ?? [] : []),
+  ], [topicOn, topicArea, entityOn, entityArea, kwAreas]);
 
   const filters: Filters = useMemo(
     () => ({
@@ -140,14 +177,15 @@ export function Search() {
       provincesMode: provinceSel.length ? provinceMode : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
       courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
-      legalAreas: practiceAreaSel ? [practiceAreaSel] : undefined,
+      legalAreas: practiceOn && practiceAreaSel ? [practiceAreaSel] : undefined,
       subjects: subjectIds.length ? subjectIds : undefined,
       subjectsMode: subjectIds.length ? "or" : undefined,
-      dateFrom: yearFrom ? `${yearFrom}-01-01` : undefined,
-      dateTo: yearTo ? `${yearTo}-12-31` : undefined,
+      dateFrom: yearOn && yearFrom ? `${yearFrom}-01-01` : undefined,
+      dateTo: yearOn && yearTo ? `${yearTo}-12-31` : undefined,
     }),
     [courtSel, courtMode, provinceSel, provinceMode,
-     courtTypeSel, courtTypeMode, practiceAreaSel, subjectIds, yearFrom, yearTo],
+     courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, subjectIds,
+     yearOn, yearFrom, yearTo],
   );
 
   async function runSearch() {
@@ -171,7 +209,8 @@ export function Search() {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
-      courtTypeSel, courtTypeMode, practiceAreaSel, topicArea, entityArea, yearFrom, yearTo]);
+      courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, topicOn, topicArea,
+      entityOn, entityArea, yearOn, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
     const list = [...results];
@@ -226,6 +265,9 @@ export function Search() {
     setPracticeAreaSel(""); setTopicArea(""); setEntityArea("");
     setYearFrom("");
     setYearTo("");
+    // Back to the default state, which is every section switched on and empty --
+    // otherwise "Clear filters" would leave sections greyed out with no value.
+    setPracticeOn(true); setTopicOn(true); setEntityOn(true); setYearOn(true);
   }
 
   return (
@@ -262,9 +304,13 @@ export function Search() {
         />
 
         <div className="filter-group">
-          <label className="filter-label" htmlFor="practice-select">Practice area</label>
+          <FilterHead
+            label="Practice area" htmlFor="practice-select"
+            on={practiceOn} onChange={setPracticeOn}
+          />
           <select
             id="practice-select"
+            disabled={!practiceOn}
             value={practiceAreaSel}
             onChange={(e) => setPracticeAreaSel(e.target.value)}
           >
@@ -276,9 +322,13 @@ export function Search() {
         </div>
 
         <div className="filter-group">
-          <label className="filter-label" htmlFor="topic-select">Topic</label>
+          <FilterHead
+            label="Topic" htmlFor="topic-select"
+            on={topicOn} onChange={setTopicOn}
+          />
           <select
             id="topic-select"
+            disabled={!topicOn}
             value={topicArea}
             onChange={(e) => setTopicArea(e.target.value)}
           >
@@ -290,9 +340,13 @@ export function Search() {
         </div>
 
         <div className="filter-group">
-          <label className="filter-label" htmlFor="entity-select">Entities</label>
+          <FilterHead
+            label="Entities" htmlFor="entity-select"
+            on={entityOn} onChange={setEntityOn}
+          />
           <select
             id="entity-select"
+            disabled={!entityOn}
             value={entityArea}
             onChange={(e) => setEntityArea(e.target.value)}
           >
@@ -304,15 +358,22 @@ export function Search() {
         </div>
 
         <div className="filter-group">
-          <label className="filter-label">Year range</label>
+          <FilterHead
+            label="Year range" htmlFor="year-from"
+            on={yearOn} onChange={setYearOn}
+          />
           <div className="filter-row">
             <input
+              id="year-from"
               type="number" placeholder={yearMin} min={yearMin} max={yearMax}
+              disabled={!yearOn}
               value={yearFrom} onChange={(e) => setYearFrom(e.target.value)}
             />
             <span>–</span>
             <input
               type="number" placeholder={yearMax} min={yearMin} max={yearMax}
+              disabled={!yearOn}
+              aria-label="Year range, to"
               value={yearTo} onChange={(e) => setYearTo(e.target.value)}
             />
           </div>

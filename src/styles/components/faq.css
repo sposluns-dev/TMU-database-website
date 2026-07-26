@@ -62,8 +62,11 @@
 }
 
 .faq-answer-list {
+    /* Restore bullets: the global `section ul { list-style: none }` in
+       layout.css otherwise strips the markers from any list inside a section. */
+    list-style: disc;
     margin: 0.5rem 0 0 0;
-    padding-left: 1.25rem;
+    padding-left: 1.5rem;
 }
 
 .faq-answer-list li {

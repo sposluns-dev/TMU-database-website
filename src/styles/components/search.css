@@ -41,6 +41,36 @@
     margin-bottom: 0.4rem;
 }
 
+/* Label row for the on/off filter sections. The margin moves here so the
+   checkbox and the label share one baseline instead of the label carrying a
+   gap the checkbox does not. */
+.filter-head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.4rem;
+}
+
+.filter-head .filter-label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.filter-toggle {
+    flex: none;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--color-accent);
+}
+
+/* A switched-off section keeps its value on screen but reads as inactive. */
+.filter-group select:disabled,
+.filter-group input[type="number"]:disabled {
+    background: var(--color-gray-100);
+    color: var(--color-text-secondary);
+    cursor: not-allowed;
+}
+
 .filter-group select,
 .filter-group input[type="number"] {
     width: 100%;
@@ -276,15 +306,21 @@
 /* Fallback excerpt (case summary) shown when there is no highlighted snippet. */
 .result-snippet-plain { font-style: italic; }
 
-.result-open {
-    display: inline-block;
-    margin-top: 0.6rem;
+/* The card actions ("Summary, issues & FIRAC", "View on CanLII", "View
+   Generation Notes") are one set and must read as one, even though some render
+   as <a> and some as <button>. Style them together here; the only per-element
+   rules left are the <button> resets further down. */
+.result-open,
+.result-canlii,
+.result-notes {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--color-accent);
     text-decoration: none;
 }
-.result-open:hover {
+.result-open:hover,
+.result-canlii:hover,
+.result-notes:hover {
     text-decoration: underline;
 }
 
@@ -441,8 +477,14 @@
 .result-select { margin-right: .5rem; cursor: pointer; }
 .result-card.selected { outline: 2px solid #339999; outline-offset: 2px; }
 .result-table tr.selected { background: #e6f4f4; }
-.result-links { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; }
-.result-canlii { color: #267373; }
+/* Margin sits on the row, not on one action, so nothing sits off the baseline. */
+.result-links {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 0.6rem;
+}
 
 /* ── API-era additions ───────────────────────────────────────────── */
 
@@ -507,9 +549,22 @@
     color: #8a3232;
 }
 
-/* Detail trigger rendered as a button but reading as a link. */
+/* Card actions rendered as buttons but reading as links. Strip the chrome only —
+   size, weight and colour come from the shared .result-open/.result-canlii/
+   .result-notes rule above. Deliberately `font-family` and not the `font`
+   shorthand: `font: inherit` here outranks that rule (0,1,1 vs 0,1,0) and would
+   silently restore the card's body size, which is what made these three
+   mismatch in the first place. */
 button.result-open,
-button.result-notes,
+button.result-notes {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* Generic link-styled button used outside the result cards. */
 .link-button {
     border: none;
     background: none;
@@ -519,15 +574,6 @@ button.result-notes,
     cursor: pointer;
 }
 
-button.result-open:hover,
-button.result-notes:hover,
 .link-button:hover {
     text-decoration: underline;
-}
-
-/* Generation-notes action reads as a quieter, secondary link. */
-button.result-notes {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-secondary);
 }
