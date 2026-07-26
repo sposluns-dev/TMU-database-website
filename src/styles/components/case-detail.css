@@ -304,6 +304,46 @@
 .firac-body dd { margin: 0.15rem 0 0; }
 
 /* ── Full text ───────────────────────────────────────────────────── */
+/* Heading row: section title on the left, copy/download actions on the right. */
+.case-text-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.case-text-head h3 {
+    margin: 0;
+}
+
+.case-text-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.case-text-btn {
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    background: var(--color-white);
+    padding: 0.3rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.case-text-btn:hover:not(:disabled) {
+    background: var(--color-gray-100);
+    border-color: var(--color-turquoise-light);
+}
+
+.case-text-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
 .case-loadtext {
     border: 1px solid var(--color-gray-300);
     border-radius: var(--radius-md);

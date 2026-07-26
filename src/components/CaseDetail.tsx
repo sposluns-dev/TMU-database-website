@@ -41,11 +41,20 @@ const SECTION_LABELS: Record<SectionKey, Record<Lang, string>> = {
 };
 const SECTION_ORDER: SectionKey[] = ["keywords", "summary", "issues", "firac", "text"];
 
+// Labels for the copy / download actions on the Full-text section, in both
+// languages so they read correctly whichever way the EN/FR toggle is set.
+const ACTION_LABELS = {
+  copy:     { en: "Copy text",     fr: "Copier le texte" },
+  copied:   { en: "Copied",        fr: "Copié" },
+  download: { en: "Download .txt", fr: "Télécharger .txt" },
+};
+
 export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
   const [data, setData] = useState<ApiCaseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [openBlocks, setOpenBlocks] = useState<Set<number>>(new Set([1]));
   const [lang, setLang] = useState<"en" | "fr">("en");
   const [visible, setVisible] = useState<Record<SectionKey, boolean>>({
@@ -81,16 +90,50 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
     };
   }, [onClose]);
 
-  async function loadText() {
+  // Fetch the judgment text once, cache it in state, and return it. Copy and
+  // download both go through this so they work even before the text is shown.
+  async function ensureText(): Promise<string | null> {
+    if (text !== null) return text;
     setLoadingText(true);
     try {
       const full = await apiCase(caseId);
-      setText(full.text ?? "");
+      const t = full.text ?? "";
+      setText(t);
+      return t;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return null;
     } finally {
       setLoadingText(false);
     }
+  }
+
+  const loadText = () => void ensureText();
+
+  async function copyText() {
+    const t = await ensureText();
+    if (t == null) return;
+    try {
+      await navigator.clipboard.writeText(t);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError(lang === "fr" ? "Copie impossible" : "Copy failed");
+    }
+  }
+
+  async function downloadText() {
+    const t = await ensureText();
+    if (t == null) return;
+    const blob = new Blob([t], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${caseId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   const toggleBlock = (seq: number) =>
@@ -337,7 +380,29 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
 
                 {visible.text && (
                   <section className="case-section">
-                    <h3>{SECTION_LABELS.text[lang]}</h3>
+                    <div className="case-text-head">
+                      <h3>{SECTION_LABELS.text[lang]}</h3>
+                      {/* Copy / download the judgment text. Both fetch it first
+                          if it hasn't been loaded, so they work straight away. */}
+                      <div className="case-text-actions">
+                        <button
+                          type="button"
+                          className="case-text-btn"
+                          onClick={copyText}
+                          disabled={loadingText}
+                        >
+                          {copied ? `✓ ${ACTION_LABELS.copied[lang]}` : ACTION_LABELS.copy[lang]}
+                        </button>
+                        <button
+                          type="button"
+                          className="case-text-btn"
+                          onClick={downloadText}
+                          disabled={loadingText}
+                        >
+                          {ACTION_LABELS.download[lang]}
+                        </button>
+                      </div>
+                    </div>
                     {text === null ? (
                       <button className="case-loadtext" onClick={loadText} disabled={loadingText}>
                         {loadingText
