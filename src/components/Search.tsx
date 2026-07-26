@@ -109,7 +109,8 @@ export function Search() {
   }>({ topic: [], entity: [], byArea: {} });
   // Practice area stays a single-select dropdown: practice_area is one column on
   // the case, so a case has exactly one — multi-select with an Any/All toggle
-  // would offer an "All" that can never match.
+  // would offer an "All" that can never match. It needs no on/off checkbox
+  // either: the empty value ("All practice areas") is the off position.
   const [practiceAreaSel, setPracticeAreaSel] = useState("");
   // Topic (keyword doctrine areas) is multi-select with an Any/All toggle.
   const [topicSel, setTopicSel] = useState<string[]>([]);
@@ -121,7 +122,6 @@ export function Search() {
   // On/off switches for the sections that are a single control rather than a
   // checkbox list. Unchecking one drops it from the query but keeps whatever
   // was picked, so a filter can be parked and brought back.
-  const [practiceOn, setPracticeOn] = useState(true);
   const [entityOn, setEntityOn] = useState(true);
   const [yearOn, setYearOn] = useState(true);
   // Cases the user has ticked for export / visualization (by case id).
@@ -208,7 +208,7 @@ export function Search() {
       provincesMode: provinceSel.length ? provinceMode : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
       courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
-      legalAreas: practiceOn && practiceAreaSel ? [practiceAreaSel] : undefined,
+      legalAreas: practiceAreaSel ? [practiceAreaSel] : undefined,
       subjects: subjectIds.length ? subjectIds : undefined,
       subjectsMode: subjectIds.length ? topicMode : undefined,
       subjectGroups: subjectGroups.length ? subjectGroups : undefined,
@@ -216,7 +216,7 @@ export function Search() {
       dateTo: yearOn && yearTo ? `${yearTo}-12-31` : undefined,
     }),
     [courtSel, courtMode, provinceSel, provinceMode,
-     courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel,
+     courtTypeSel, courtTypeMode, practiceAreaSel,
      subjectIds, subjectGroups, topicMode,
      yearOn, yearFrom, yearTo],
   );
@@ -242,7 +242,7 @@ export function Search() {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
-      courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, topicSel, topicMode,
+      courtTypeSel, courtTypeMode, practiceAreaSel, topicSel, topicMode,
       entityOn, entitySel, yearOn, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
@@ -302,7 +302,7 @@ export function Search() {
     setYearTo("");
     // Back to the default state, which is every section switched on and empty --
     // otherwise "Clear filters" would leave sections greyed out with no value.
-    setPracticeOn(true); setEntityOn(true); setYearOn(true);
+    setEntityOn(true); setYearOn(true);
   }
 
   return (
@@ -339,13 +339,16 @@ export function Search() {
         />
 
         <div className="filter-group">
-          <FilterHead
-            label="Practice area" htmlFor="practice-select"
-            on={practiceOn} onChange={setPracticeOn}
-          />
+          {/* No on/off checkbox here: "All practice areas" already is the off
+              position, so a separate toggle would be a second way to say the
+              same thing. */}
+          <div className="filter-head">
+            <label className="filter-label" htmlFor="practice-select">
+              Practice area
+            </label>
+          </div>
           <select
             id="practice-select"
-            disabled={!practiceOn}
             value={practiceAreaSel}
             onChange={(e) => setPracticeAreaSel(e.target.value)}
           >
