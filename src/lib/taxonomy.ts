@@ -1,27 +1,10 @@
-// Controlled vocabularies for the faceted filters. Subjects mirror the SATL
-// taxonomy. Court type / area of law are standard Canadian categories.
-// Cases are tagged via the optional public/data/case_tags.json (see search.ts);
-// until tagged, these filters render but match nothing.
-
-export const SUBJECTS = [
-  "Freedom of Speech",
-  "Actions against or dismissal of public servants",
-  "Prohibition of Symbols, Parties & Associations",
-  "Hate Speech and Incitement",
-  "Freedom of Assembly",
-  "Anti-constitutional activities",
-  "Compensation",
-  "Holocaust Denial & Trivialisation",
-  "Pogroms and Violent Attacks on Persons",
-  "Workplace and labour issues",
-  "Artistic Freedom",
-  "Attack on Jewish Places of Worship",
-  "Discrimination",
-  "Insult of State Officials",
-  "Israel-related incident",
-  "Restitution",
-  "Other",
-] as const;
+// Court-type vocabulary and the court-code lookup tables.
+//
+// The *subject* vocabulary does NOT live here — it is the 122-term controlled
+// vocabulary in the `keywords` table, served by `GET /keywords` and rendered by
+// the Topic and Entities filters in Search.tsx. Court type is the one facet
+// still defined client-side, because it is a pure function of the court code
+// (COURT_TYPE_MAP below) rather than anything stored per case.
 
 export const COURT_TYPES = [
   "Supreme Court",
@@ -31,21 +14,7 @@ export const COURT_TYPES = [
   "Tribunal",
 ] as const;
 
-export const AREAS_OF_LAW = [
-  "Administrative law",
-  "Civil litigation",
-  "Constitutional law",
-  "Criminal law",
-  "Education law",
-  "Family law",
-  "Human rights",
-  "Immigration law",
-  "Labour and employment law",
-] as const;
-
-export type Subject = (typeof SUBJECTS)[number];
 export type CourtType = (typeof COURT_TYPES)[number];
-export type AreaOfLaw = (typeof AREAS_OF_LAW)[number];
 
 // Full court/tribunal names for the court-code filter. Every code present in
 // the corpus is listed; codes not listed fall back to showing just the code.

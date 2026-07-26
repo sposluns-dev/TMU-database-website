@@ -1,10 +1,14 @@
-// SATL/Uwazi-style faceted search page.
-// Sidebar filters: Court, Province, Subject, Court type, Area of law, Year range,
-// search mode. Main: search bar + tips, toolbar (count, sort, per-page, export,
-// view toggle), and Cards / Table / Map views.
+// Faceted search page.
+// Sidebar filters: Court / Tribunal, Province, Court type, Practice area, Topic,
+// Entities, Year range. Main: search bar + tips, toolbar (count, sort, per-page,
+// export, view toggle), and Cards / Table / Map views.
 //
-// Subject / court-type / area-of-law options come from src/lib/taxonomy.ts and
-// match against tags merged from public/data/case_tags.json (added later).
+// Where the filter options come from:
+//   Court, Province, Practice area — the corpus itself, via GET /facets.
+//   Topic, Entities               — the controlled vocabulary, via GET /keywords,
+//                                   grouped by each keyword's `area`.
+//   Court type                    — src/lib/taxonomy.ts (COURT_TYPE_MAP); it is
+//                                   derived from the court code, not stored.
 
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { search, loadIndex, warmSearch, type SearchMode } from "../lib/search";
