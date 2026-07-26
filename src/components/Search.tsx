@@ -12,6 +12,7 @@ import { downloadCsv } from "../lib/export";
 import { COURT_TYPES, courtLabel } from "../lib/taxonomy";
 import { USE_API, apiKeywords } from "../lib/api";
 import { MultiFilter } from "./MultiFilter";
+import { KeywordTree, type TreeTerm } from "./KeywordTree";
 import { CaseDetail } from "./CaseDetail";
 import type { CasesIndex, Filters, MatchMode, SearchResult } from "../lib/types";
 import "../styles/components/search.css";
@@ -100,11 +101,12 @@ export function Search() {
   const [kwAreas, setKwAreas] = useState<{
     topic: string[];
     entity: string[];
-    byArea: Record<string, string[]>; // area -> keyword_ids
+    byArea: Record<string, TreeTerm[]>; // area -> its terms
   }>({ topic: [], entity: [], byArea: {} });
   const [practiceAreaSel, setPracticeAreaSel] = useState(""); // tier-1 practice_area
   const [topicArea, setTopicArea] = useState("");             // keyword doctrine area
-  const [entityArea, setEntityArea] = useState("");
+  // Entities are picked term-by-term (KeywordTree), not a whole area at a time.
+  const [entitySel, setEntitySel] = useState<string[]>([]);
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   // Per-section on/off switches for the four single-control filters. Unchecking
@@ -147,11 +149,18 @@ export function Search() {
     if (!USE_API) return;
     apiKeywords()
       .then((ks) => {
-        const byArea: Record<string, string[]> = {};
+        const byArea: Record<string, TreeTerm[]> = {};
         for (const k of ks) {
           const a = (k.area ?? "").trim();
           if (!a || a === "Practice Area (Tier 1)") continue;
-          (byArea[a] ??= []).push(k.keyword_id);
+          (byArea[a] ??= []).push({
+            id: k.keyword_id,
+            label: k.canonical_en,
+            count: k.count,
+          });
+        }
+        for (const terms of Object.values(byArea)) {
+          terms.sort((x, y) => x.label.localeCompare(y.label));
         }
         const areas = Object.keys(byArea);
         setKwAreas({
@@ -165,9 +174,11 @@ export function Search() {
 
   // Selected areas -> the keyword_ids they contain (the `subjects` filter, OR'd).
   const subjectIds = useMemo(() => [
-    ...(topicOn && topicArea ? kwAreas.byArea[topicArea] ?? [] : []),
-    ...(entityOn && entityArea ? kwAreas.byArea[entityArea] ?? [] : []),
-  ], [topicOn, topicArea, entityOn, entityArea, kwAreas]);
+    ...(topicOn && topicArea
+      ? (kwAreas.byArea[topicArea] ?? []).map((t) => t.id)
+      : []),
+    ...(entityOn ? entitySel : []),
+  ], [topicOn, topicArea, entityOn, entitySel, kwAreas]);
 
   const filters: Filters = useMemo(
     () => ({
@@ -210,7 +221,7 @@ export function Search() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
       courtTypeSel, courtTypeMode, practiceOn, practiceAreaSel, topicOn, topicArea,
-      entityOn, entityArea, yearOn, yearFrom, yearTo]);
+      entityOn, entitySel, yearOn, yearFrom, yearTo]);
 
   const sorted = useMemo(() => {
     const list = [...results];
@@ -262,7 +273,7 @@ export function Search() {
     setCourtSel([]); setCourtMode("or");
     setProvinceSel([]); setProvinceMode("or");
     setCourtTypeSel([]); setCourtTypeMode("or");
-    setPracticeAreaSel(""); setTopicArea(""); setEntityArea("");
+    setPracticeAreaSel(""); setTopicArea(""); setEntitySel([]);
     setYearFrom("");
     setYearTo("");
     // Back to the default state, which is every section switched on and empty --
@@ -339,23 +350,16 @@ export function Search() {
           </select>
         </div>
 
-        <div className="filter-group">
-          <FilterHead
-            label="Entities" htmlFor="entity-select"
-            on={entityOn} onChange={setEntityOn}
-          />
-          <select
-            id="entity-select"
-            disabled={!entityOn}
-            value={entityArea}
-            onChange={(e) => setEntityArea(e.target.value)}
-          >
-            <option value="">All entities</option>
-            {kwAreas.entity.map((a) => (
-              <option key={a} value={a}>{a.replace(/^Entities — /, "")}</option>
-            ))}
-          </select>
-        </div>
+        <KeywordTree
+          label="Entities"
+          areas={kwAreas.entity}
+          termsByArea={kwAreas.byArea}
+          selected={entitySel}
+          onChange={setEntitySel}
+          on={entityOn}
+          onToggleOn={setEntityOn}
+          stripPrefix="Entities — "
+        />
 
         <div className="filter-group">
           <FilterHead
