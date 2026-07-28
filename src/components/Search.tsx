@@ -101,7 +101,18 @@ const LIST_COPY_ID = "__citation_list__";
 
 export function Search() {
   const [index, setIndex] = useState<CasesIndex | null>(null);
+  // Two search boxes. `query`/`nameQuery` are what is *typed*; `appliedQuery`/
+  // `appliedName` are what was last *submitted*. Nothing searches until a button
+  // (or Enter) commits the typed value across — so changing a sidebar filter
+  // re-runs the last submitted search rather than dragging half-typed text in.
   const [query, setQuery] = useState("");
+  const [nameQuery, setNameQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [appliedName, setAppliedName] = useState("");
+  // When off, each button searches only its own box and clears the other, so
+  // "Search by title" really does mean title only. When on, both boxes narrow
+  // one search and either button submits the pair.
+  const [combine, setCombine] = useState(false);
   const [mode, setMode] = useState<SearchMode>("browse");
 
   // Multi-select facet filters (selected values + Any/All match mode).
@@ -109,8 +120,10 @@ export function Search() {
   const [courtMode, setCourtMode] = useState<MatchMode>("or");
   const [provinceSel, setProvinceSel] = useState<string[]>([]);
   const [provinceMode, setProvinceMode] = useState<MatchMode>("or");
+  // Court type carries no match-mode state: it is derived from the court code,
+  // so a case has exactly one and "All (AND)" across two could never match.
+  // Locked to Any (OR), shown as plain text rather than a toggle.
   const [courtTypeSel, setCourtTypeSel] = useState<string[]>([]);
-  const [courtTypeMode, setCourtTypeMode] = useState<MatchMode>("or");
   // Topic / entity dropdowns: the keyword vocabulary grouped by its `area`.
   // Selecting an area filters to cases carrying any keyword in that area.
   const [kwAreas, setKwAreas] = useState<{
@@ -118,11 +131,11 @@ export function Search() {
     entity: string[];
     byArea: Record<string, TreeTerm[]>; // area -> its terms
   }>({ topic: [], entity: [], byArea: {} });
-  // Practice area stays a single-select dropdown: practice_area is one column on
-  // the case, so a case has exactly one — multi-select with an Any/All toggle
-  // would offer an "All" that can never match. It needs no on/off checkbox
-  // either: the empty value ("All practice areas") is the off position.
-  const [practiceAreaSel, setPracticeAreaSel] = useState("");
+  // Practice area is a checkbox list locked to Any (OR), for the same reason as
+  // court type: practice_area is one column on the case, so "All (AND)" across
+  // two values could never match. Nothing selected = no constraint, so it needs
+  // no separate on/off control.
+  const [practiceSel, setPracticeSel] = useState<string[]>([]);
   // Topic (keyword doctrine areas) is multi-select with an Any/All toggle.
   const [topicSel, setTopicSel] = useState<string[]>([]);
   const [topicMode, setTopicMode] = useState<MatchMode>("or");
@@ -222,26 +235,40 @@ export function Search() {
       provinces: provinceSel.length ? provinceSel : undefined,
       provincesMode: provinceSel.length ? provinceMode : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
-      courtTypesMode: courtTypeSel.length ? courtTypeMode : undefined,
-      legalAreas: practiceAreaSel ? [practiceAreaSel] : undefined,
+      courtTypesMode: courtTypeSel.length ? "or" : undefined,
+      legalAreas: practiceSel.length ? practiceSel : undefined,
+      legalAreasMode: practiceSel.length ? "or" : undefined,
       subjects: subjectIds.length ? subjectIds : undefined,
       subjectsMode: subjectIds.length ? topicMode : undefined,
       subjectGroups: subjectGroups.length ? subjectGroups : undefined,
       dateFrom: yearOn && yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearOn && yearTo ? `${yearTo}-12-31` : undefined,
+      nameQuery: appliedName.trim() || undefined,
     }),
     [courtSel, courtMode, provinceSel, provinceMode,
-     courtTypeSel, courtTypeMode, practiceAreaSel,
+     courtTypeSel, practiceSel,
      subjectIds, subjectGroups, topicMode,
-     yearOn, yearFrom, yearTo],
+     yearOn, yearFrom, yearTo, appliedName],
   );
+
+  // Submitting. With "combine" off, each button commits its own box and blanks
+  // the other, so the button label is literally true. With it on, both buttons
+  // commit the pair.
+  const searchByText = () => {
+    setAppliedQuery(query);
+    setAppliedName(combine ? nameQuery : "");
+  };
+  const searchByTitle = () => {
+    setAppliedName(nameQuery);
+    setAppliedQuery(combine ? query : "");
+  };
 
   async function runSearch() {
     setLoading(true);
     try {
       // Fetch all matches; the "Show" dropdown (perPage) controls how many display.
       const { results: r, mode: m, total: t, expandedTo: x, error } =
-        await search(query, filters, { k: 1000 });
+        await search(appliedQuery, filters, { k: 1000 });
       setResults(r);
       setMode(m);
       setTotal(t ?? null);
@@ -257,8 +284,9 @@ export function Search() {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, courtSel, courtMode, provinceSel, provinceMode,
-      courtTypeSel, courtTypeMode, practiceAreaSel, topicSel, topicMode,
-      entityOn, entitySel, yearOn, yearFrom, yearTo]);
+      courtTypeSel, practiceSel, topicSel, topicMode,
+      entityOn, entitySel, yearOn, yearFrom, yearTo,
+      appliedQuery, appliedName]);
 
   const sorted = useMemo(() => {
     const list = [...results];
@@ -319,8 +347,8 @@ export function Search() {
   function clearFilters() {
     setCourtSel([]); setCourtMode("or");
     setProvinceSel([]); setProvinceMode("or");
-    setCourtTypeSel([]); setCourtTypeMode("or");
-    setPracticeAreaSel("");
+    setCourtTypeSel([]);
+    setPracticeSel([]);
     setTopicSel([]); setTopicMode("or");
     setEntitySel([]);
     setYearFrom("");
@@ -359,30 +387,16 @@ export function Search() {
           options={COURT_TYPES.map((t) => ({ value: t, label: t }))}
           selected={courtTypeSel}
           onToggle={(v) => setCourtTypeSel((a) => toggle(a, v))}
-          mode={courtTypeMode}
-          onMode={setCourtTypeMode}
+          mode="or"
         />
 
-        <div className="filter-group">
-          {/* No on/off checkbox here: "All practice areas" already is the off
-              position, so a separate toggle would be a second way to say the
-              same thing. */}
-          <div className="filter-head">
-            <label className="filter-label" htmlFor="practice-select">
-              Practice area
-            </label>
-          </div>
-          <select
-            id="practice-select"
-            value={practiceAreaSel}
-            onChange={(e) => setPracticeAreaSel(e.target.value)}
-          >
-            <option value="">All practice areas</option>
-            {(index?.facets.practiceAreas ?? []).map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
+        <MultiFilter
+          label="Practice area"
+          options={(index?.facets.practiceAreas ?? []).map((a) => ({ value: a, label: a }))}
+          selected={practiceSel}
+          onToggle={(v) => setPracticeSel((a) => toggle(a, v))}
+          mode="or"
+        />
 
         <MultiFilter
           label="Topic"
@@ -433,19 +447,58 @@ export function Search() {
 
       {/* ── Main column ────────────────────────────────────────────── */}
       <main className="search-main">
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search cases (e.g. internet hate speech, religious freedom)…"
-            value={query}
-            onFocus={warmSearch}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
-          />
-          <button onClick={runSearch} disabled={loading}>
-            {loading ? "Searching…" : "Search"}
-          </button>
+        {/* Two inputs, because they search different things: `query` runs the
+            ranked full-text search over the judgment body, `nameQuery` is an
+            exact-ish lookup over the short identifying fields. Filling both
+            narrows — the name lookup applies as a filter on top of the text
+            search. */}
+        <div className="search-split">
+          <div className="search-field">
+            <label htmlFor="q-text">Search document text</label>
+            <div className="search-bar">
+              <input
+                id="q-text"
+                type="text"
+                placeholder="Keywords, e.g. internet hate speech, religious freedom…"
+                value={query}
+                onFocus={warmSearch}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchByText()}
+              />
+              <button onClick={searchByText} disabled={loading}>
+                {loading ? "Searching…" : "Search by text"}
+              </button>
+            </div>
+          </div>
+
+          <div className="search-field">
+            <label htmlFor="q-name">Case name / citation</label>
+            <div className="search-bar">
+              <input
+                id="q-name"
+                type="text"
+                placeholder="e.g. Elkhodary, or 2025 ONCJ 587…"
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchByTitle()}
+              />
+              <button onClick={searchByTitle} disabled={loading}>
+                {loading ? "Searching…" : "Search by title"}
+              </button>
+            </div>
+          </div>
         </div>
+
+        <label className="search-combine">
+          <input
+            type="checkbox"
+            checked={combine}
+            onChange={(e) => setCombine(e.target.checked)}
+          />
+          <span>
+            Combine both boxes — narrow one search by text <em>and</em> case name
+          </span>
+        </label>
 
         <div className="search-modebar">
           <button className="tips-toggle" onClick={() => setShowTips((v) => !v)}>

@@ -112,7 +112,20 @@ function matchMulti(
   return mode === "and" ? selected.every((s) => t.includes(s)) : selected.some((s) => t.includes(s));
 }
 
+// Case name / citation lookup, mirroring the server's `name_q`: every token
+// must appear somewhere in name+citation, folded so "quebec" finds "Québec".
+function matchName(c: CaseMeta, nameQuery: string | undefined): boolean {
+  const q = nameQuery?.trim();
+  if (!q) return true;
+  const fold = (s: string) =>
+    s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+  const hay = fold(`${c.case_name ?? ""} ${c.citation ?? ""}`);
+  return fold(q).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+    .every((t) => hay.includes(t));
+}
+
 function matchesFilters(c: CaseMeta, f: Filters): boolean {
+  if (!matchName(c, f.nameQuery)) return false;
   if (!matchSingle(c.court, f.courts, f.courtsMode)) return false;
   if (!matchSingle(c.province, f.provinces, f.provincesMode)) return false;
   if (!matchSingle(c.court_type, f.courtTypes, f.courtTypesMode)) return false;

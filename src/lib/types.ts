@@ -76,6 +76,14 @@ export interface Filters {
   legalAreasMode?: MatchMode;
   dateFrom?: string; // YYYY-MM-DD
   dateTo?: string;
+  /**
+   * Case name / citation lookup, kept separate from the free-text query: it
+   * searches the short identifying fields rather than the judgment body, and
+   * `citation` is not in the FTS index at all. Every token must appear
+   * somewhere in name+citation; matching is substring, case- and
+   * accent-insensitive, so "quebec" finds "Québec".
+   */
+  nameQuery?: string;
 }
 
 export interface SearchResult extends CaseMeta {

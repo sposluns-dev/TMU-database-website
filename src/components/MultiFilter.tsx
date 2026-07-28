@@ -20,7 +20,12 @@ export function MultiFilter({
   selected: string[];
   onToggle: (value: string) => void;
   mode: "or" | "and";
-  onMode: (m: "or" | "and") => void;
+  /**
+   * Omit to lock the match mode. The row then shows `mode` as plain grey text
+   * instead of a toggle — right for facets stored as a single value per case
+   * (court type, practice area), where "All (AND)" could never match.
+   */
+  onMode?: (m: "or" | "and") => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -39,35 +44,41 @@ export function MultiFilter({
       </button>
       {open && (
         <div className="subject-list">
-          <div
-            className="subject-mode"
-            role="group"
-            aria-label={`${label} match mode`}
-            style={{ display: "flex", gap: 4, marginBottom: 8 }}
-          >
-            <span style={{ fontSize: ".8rem", color: "var(--muted,#666)", alignSelf: "center" }}>
-              Match:
-            </span>
-            {(["or", "and"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onMode(m)}
-                aria-pressed={mode === m}
-                style={{
-                  padding: "2px 10px",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  border: "1px solid #ccc",
-                  background: mode === m ? "#339999" : "#fff",
-                  color: mode === m ? "#fff" : "#333",
-                  fontSize: ".8rem",
-                }}
-              >
-                {m === "or" ? "Any (OR)" : "All (AND)"}
-              </button>
-            ))}
-          </div>
+          {onMode ? (
+            <div
+              className="subject-mode"
+              role="group"
+              aria-label={`${label} match mode`}
+              style={{ display: "flex", gap: 4, marginBottom: 8 }}
+            >
+              <span style={{ fontSize: ".8rem", color: "var(--muted,#666)", alignSelf: "center" }}>
+                Match:
+              </span>
+              {(["or", "and"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => onMode(m)}
+                  aria-pressed={mode === m}
+                  style={{
+                    padding: "2px 10px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    border: "1px solid #ccc",
+                    background: mode === m ? "#339999" : "#fff",
+                    color: mode === m ? "#fff" : "#333",
+                    fontSize: ".8rem",
+                  }}
+                >
+                  {m === "or" ? "Any (OR)" : "All (AND)"}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="subject-mode-static">
+              Match: {mode === "and" ? "All (AND)" : "Any (OR)"}
+            </p>
+          )}
           {options.map((o) => (
             <label key={o.value} className="subject-check">
               <input

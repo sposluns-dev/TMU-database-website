@@ -196,6 +196,9 @@ export function filtersToParams(
     p.set("keyword_mode", filters.subjectsMode === "and" ? "and" : "or");
   }
 
+  const nameQ = filters.nameQuery?.trim();
+  if (nameQ) p.set("name_q", nameQ);
+
   if (filters.dateFrom) p.set("date_from", filters.dateFrom);
   if (filters.dateTo) p.set("date_to", filters.dateTo);
 
