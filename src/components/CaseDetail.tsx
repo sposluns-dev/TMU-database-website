@@ -46,6 +46,29 @@ const SECTION_LABELS: Record<SectionKey, Record<Lang, string>> = {
 // FIRAC is not listed: it renders in the generation-notes view, not here.
 const SECTION_ORDER: SectionKey[] = ["keywords", "summary", "issues", "text"];
 
+// Provenance notice shown at the top of both views. The summary, keywords,
+// defining issues and FIRAC analysis are all model-generated, so the notice
+// sits above them rather than at the foot of the drawer where it would be read
+// last, if at all. The point it has to land is that this is not the decision:
+// the risk is a reader citing the summary instead of the judgment.
+// The two language versions are deliberate translations of each other, clause
+// for clause — a bilingual page should not disclose more in one language than
+// the other.
+//
+// Worded per view, because each names what is actually on the page: the case
+// view lists summary / keywords / defining issues; the notes view carries the
+// FIRAC analysis and the generation rationales instead.
+const DISCLAIMER: Record<"case" | "notes", Record<Lang, string>> = {
+  case: {
+    en: "The summary, keywords and defining issues on this page are produced by an AI model from the full text of the decision and may contain errors or omissions. Verify against the original decision before relying on or citing it.",
+    fr: "Le résumé, les mots-clés et les questions en litige de cette page sont produits par un modèle d'IA à partir du texte intégral de la décision et peuvent comporter des erreurs ou des omissions. Vérifiez la décision originale avant de vous y fier ou de la citer.",
+  },
+  notes: {
+    en: "The FIRAC analysis and rationales on this page are produced by an AI model from the full text of the decision and may contain errors or omissions. Verify against the original decision before relying on or citing it.",
+    fr: "L'analyse FIRAC et les justifications de cette page sont produites par un modèle d'IA à partir du texte intégral de la décision et peuvent comporter des erreurs ou des omissions. Vérifiez la décision originale avant de vous y fier ou de la citer.",
+  },
+};
+
 // Labels for the copy / download actions on the Full-text section, in both
 // languages so they read correctly whichever way the EN/FR toggle is set.
 const ACTION_LABELS = {
@@ -228,6 +251,10 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 </a>
               )}
             </header>
+
+            {/* Sits directly under the header — and so under the CanLII link,
+                putting the warning and the authoritative source together. */}
+            <p className="case-disclaimer" lang={lang}>{DISCLAIMER[view][lang]}</p>
 
             {/* ── Generation-notes view ─────────────────────────────── */}
             {view === "notes" && (

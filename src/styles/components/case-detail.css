@@ -371,6 +371,20 @@
     color: var(--color-accent);
 }
 
+/* Provenance notice. Muted rather than alarming — it should be read once and
+   understood, not shout over the case it describes — but with an accent rule
+   so it reads as a notice rather than as part of the case metadata. */
+.case-disclaimer {
+    margin: 0 0 1.25rem;
+    padding: 0.6rem 0.85rem;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-gray-50);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--color-text-secondary);
+}
+
 /* The header copy of the link: sits top right, directly under the citation /
    court / place block, so the authoritative source is reachable as soon as the
    reader knows which case this is. */
