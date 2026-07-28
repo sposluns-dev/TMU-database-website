@@ -115,11 +115,12 @@ export function Search() {
   const [combine, setCombine] = useState(false);
   const [mode, setMode] = useState<SearchMode>("browse");
 
-  // Multi-select facet filters (selected values + Any/All match mode).
+  // Facet filters. None of these carry a match mode: court, province, court
+  // type and practice area are each a single value on the case, so "All (AND)"
+  // across two could never match. All are locked to Any (OR). Topic is the one
+  // exception — keywords are genuinely multi-valued — and keeps its toggle.
   const [courtSel, setCourtSel] = useState<string[]>([]);
-  const [courtMode, setCourtMode] = useState<MatchMode>("or");
   const [provinceSel, setProvinceSel] = useState<string[]>([]);
-  const [provinceMode, setProvinceMode] = useState<MatchMode>("or");
   // Court type carries no match-mode state: it is derived from the court code,
   // so a case has exactly one and "All (AND)" across two could never match.
   // Locked to Any (OR), shown as plain text rather than a toggle.
@@ -231,9 +232,9 @@ export function Search() {
   const filters: Filters = useMemo(
     () => ({
       courts: courtSel.length ? courtSel : undefined,
-      courtsMode: courtSel.length ? courtMode : undefined,
+      courtsMode: courtSel.length ? "or" : undefined,
       provinces: provinceSel.length ? provinceSel : undefined,
-      provincesMode: provinceSel.length ? provinceMode : undefined,
+      provincesMode: provinceSel.length ? "or" : undefined,
       courtTypes: courtTypeSel.length ? courtTypeSel : undefined,
       courtTypesMode: courtTypeSel.length ? "or" : undefined,
       legalAreas: practiceSel.length ? practiceSel : undefined,
@@ -245,7 +246,7 @@ export function Search() {
       dateTo: yearOn && yearTo ? `${yearTo}-12-31` : undefined,
       nameQuery: appliedName.trim() || undefined,
     }),
-    [courtSel, courtMode, provinceSel, provinceMode,
+    [courtSel, provinceSel,
      courtTypeSel, practiceSel,
      subjectIds, subjectGroups, topicMode,
      yearOn, yearFrom, yearTo, appliedName],
@@ -283,7 +284,7 @@ export function Search() {
   useEffect(() => {
     if (index) runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, courtSel, courtMode, provinceSel, provinceMode,
+  }, [index, courtSel, provinceSel,
       courtTypeSel, practiceSel, topicSel, topicMode,
       entityOn, entitySel, yearOn, yearFrom, yearTo,
       appliedQuery, appliedName]);
@@ -345,8 +346,8 @@ export function Search() {
   }, [index]);
 
   function clearFilters() {
-    setCourtSel([]); setCourtMode("or");
-    setProvinceSel([]); setProvinceMode("or");
+    setCourtSel([]);
+    setProvinceSel([]);
     setCourtTypeSel([]);
     setPracticeSel([]);
     setTopicSel([]); setTopicMode("or");
@@ -369,8 +370,7 @@ export function Search() {
           options={courts.map((c) => ({ value: c, label: courtLabel(c) }))}
           selected={courtSel}
           onToggle={(v) => setCourtSel((a) => toggle(a, v))}
-          mode={courtMode}
-          onMode={setCourtMode}
+          mode="or"
         />
 
         <MultiFilter
@@ -378,8 +378,7 @@ export function Search() {
           options={provinces.map((p) => ({ value: p, label: p }))}
           selected={provinceSel}
           onToggle={(v) => setProvinceSel((a) => toggle(a, v))}
-          mode={provinceMode}
-          onMode={setProvinceMode}
+          mode="or"
         />
 
         <MultiFilter
