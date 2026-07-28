@@ -454,7 +454,7 @@ export function Search() {
             search. */}
         <div className="search-split">
           <div className="search-field">
-            <label htmlFor="q-text">Search document text</label>
+            <label htmlFor="q-text">1. Keywords</label>
             <div className="search-bar">
               <input
                 id="q-text"
@@ -465,14 +465,16 @@ export function Search() {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchByText()}
               />
-              <button onClick={searchByText} disabled={loading}>
-                {loading ? "Searching…" : "Search by text"}
-              </button>
+              {!combine && (
+                <button onClick={searchByText} disabled={loading}>
+                  {loading ? "Searching…" : "Search by text"}
+                </button>
+              )}
             </div>
           </div>
 
           <div className="search-field">
-            <label htmlFor="q-name">Case name / citation</label>
+            <label htmlFor="q-name">2. Citations</label>
             <div className="search-bar">
               <input
                 id="q-name"
@@ -482,23 +484,32 @@ export function Search() {
                 onChange={(e) => setNameQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchByTitle()}
               />
-              <button onClick={searchByTitle} disabled={loading}>
-                {loading ? "Searching…" : "Search by title"}
-              </button>
+              {!combine && (
+                <button onClick={searchByTitle} disabled={loading}>
+                  {loading ? "Searching…" : "Search by title"}
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        <label className="search-combine">
-          <input
-            type="checkbox"
-            checked={combine}
-            onChange={(e) => setCombine(e.target.checked)}
-          />
-          <span>
-            Combine both boxes — narrow one search by text <em>and</em> case name
-          </span>
-        </label>
+        {/* Combining collapses the two per-box buttons into one Search, because
+            with both boxes applied there is only one search to run. */}
+        <div className="search-combine-row">
+          <label className="search-combine">
+            <input
+              type="checkbox"
+              checked={combine}
+              onChange={(e) => setCombine(e.target.checked)}
+            />
+            <span>Combine — narrow one search by keywords <em>and</em> citation</span>
+          </label>
+          {combine && (
+            <button className="search-go" onClick={searchByText} disabled={loading}>
+              {loading ? "Searching…" : "Search"}
+            </button>
+          )}
+        </div>
 
         <div className="search-modebar">
           <button className="tips-toggle" onClick={() => setShowTips((v) => !v)}>
@@ -716,7 +727,7 @@ export function Search() {
                 <div className="result-links">
                   {r.case_id ? (
                     <button className="result-open" onClick={() => openDetail(r.case_id!)}>
-                      Summary, issues &amp; FIRAC →
+                      Case Summary, Issues →
                     </button>
                   ) : (
                     <a

@@ -371,6 +371,16 @@
     color: var(--color-accent);
 }
 
+/* The header copy of the link: sits top right, directly under the citation /
+   court / place block, so the authoritative source is reachable as soon as the
+   reader knows which case this is. */
+.case-canlii-top {
+    display: block;
+    width: fit-content;
+    margin: 0.75rem 0 0 auto;
+    font-weight: 600;
+}
+
 @media (max-width: 720px) {
     .case-drawer { padding: 1.5rem 1.25rem 3rem; }
 }

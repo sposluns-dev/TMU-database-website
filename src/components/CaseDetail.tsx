@@ -1,10 +1,13 @@
 // Case detail drawer — two distinct views over one case, chosen by `view`:
 //
-//   "case"  → "Summary, issues & FIRAC": practice area, EN/FR toggle, and
-//             show/hide checkboxes for Keywords, Summary, Defining issues,
-//             FIRAC analysis, Full text.
+//   "case"  → "Case Summary, Issues": practice area, EN/FR toggle, a CanLII
+//             link, and show/hide checkboxes for Keywords, Summary, Defining
+//             issues, Full text.
 //   "notes" → "Generation notes": the AI-enrichment provenance for the case
-//             (name verification + the rationales), on its own.
+//             (name verification + the rationales) AND the FIRAC analysis.
+//             FIRAC lives here because it is generated, not reported — it
+//             belongs with the other derived material rather than with the
+//             reader-facing summary.
 //
 // Both pull from GET /case/{case_id}; the judgment text is fetched only when the
 // Full text section is shown. The EN/FR choice makes the case view UNILINGUAL:
@@ -15,6 +18,7 @@
 
 import { useEffect, useState } from "react";
 import { apiCase, type ApiCaseDetail, type ApiFirac } from "../lib/api";
+import { placeLabel, registryLabel, levelLabel } from "../lib/geo";
 import "../styles/components/case-detail.css";
 
 interface Props {
@@ -39,7 +43,8 @@ const SECTION_LABELS: Record<SectionKey, Record<Lang, string>> = {
   firac: { en: "FIRAC analysis", fr: "Analyse FIRAC" },
   text: { en: "Full text", fr: "Texte intégral" },
 };
-const SECTION_ORDER: SectionKey[] = ["keywords", "summary", "issues", "firac", "text"];
+// FIRAC is not listed: it renders in the generation-notes view, not here.
+const SECTION_ORDER: SectionKey[] = ["keywords", "summary", "issues", "text"];
 
 // Labels for the copy / download actions on the Full-text section, in both
 // languages so they read correctly whichever way the EN/FR toggle is set.
@@ -154,7 +159,9 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
     setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const keywords = (data?.keywords ?? []) as unknown as KeywordObj[];
-  const place = [data?.city, data?.province].filter(Boolean).join(", ");
+  // Province name and the "Registry" label follow the EN/FR toggle; city and
+  // registry values are place names and pass through unchanged (see lib/geo.ts).
+  const place = placeLabel(data?.city, data?.province, lang);
   // The summary body follows the EN/FR toggle; résumé (FR) may be absent.
   const summaryText = lang === "en" ? data?.summary : data?.resume;
   const gn = data?.generation_notes ?? null;
@@ -194,7 +201,7 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 )}
                 <span className="case-citation">{data.citation}</span>
                 <span className={`case-level case-level-${data.level}`}>
-                  {data.level === "upper" ? "Upper court" : "Lower court"}
+                  {levelLabel(data.level, lang)}
                 </span>
               </div>
               <h2>{data.case_name}</h2>
@@ -202,8 +209,24 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 <span>{data.court}</span>
                 <span>{data.date}</span>
                 {place && <span>{place}</span>}
-                {data.registry && <span>Registry: {data.registry}</span>}
+                {data.registry && (
+                  <span>{registryLabel(lang)} {data.registry}</span>
+                )}
               </div>
+
+              {/* CanLII sits directly under the identifying block, top right —
+                  the authoritative source is the first thing a reader wants
+                  once they know which case they are looking at. */}
+              {view === "case" && data.url && (
+                <a
+                  className="case-canlii case-canlii-top"
+                  href={data.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {lang === "fr" ? "Consulter sur CanLII ↗" : "View on CanLII ↗"}
+                </a>
+              )}
             </header>
 
             {/* ── Generation-notes view ─────────────────────────────── */}
@@ -276,6 +299,46 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                     No generation notes are recorded for this case.
                   </p>
                 )}
+              </section>
+            )}
+
+            {/* FIRAC is generated analysis, so it belongs with the other
+                derived material rather than with the reader-facing summary.
+                It renders whether or not `generation_notes` exist — the two
+                are produced by separate passes and either can be missing. */}
+            {view === "notes" && (data.firac?.length ?? 0) > 0 && (
+              <section className="case-section">
+                <h3>
+                  {SECTION_LABELS.firac[lang]}{" "}
+                  <span className="case-count">
+                    {data.firac.length}{" "}
+                    {lang === "fr"
+                      ? data.firac.length === 1 ? "question" : "questions"
+                      : data.firac.length === 1 ? "issue" : "issues"}
+                  </span>
+                </h3>
+                {/* Blocks are ordered by seq; that order is the only thing
+                    preserving the sequence the issues were analysed in. */}
+                {data.firac.map((b: ApiFirac) => (
+                  <article key={b.seq} className="firac">
+                    <button
+                      className="firac-issue"
+                      onClick={() => toggleBlock(b.seq)}
+                      aria-expanded={openBlocks.has(b.seq)}
+                    >
+                      <span className="firac-seq">{b.seq}</span>
+                      {b.issue}
+                    </button>
+                    {openBlocks.has(b.seq) && (
+                      <dl className="firac-body">
+                        {b.facts && (<><dt>Facts</dt><dd>{b.facts}</dd></>)}
+                        {b.rule && (<><dt>Rule</dt><dd>{b.rule}</dd></>)}
+                        {b.application && (<><dt>Application</dt><dd>{b.application}</dd></>)}
+                        {b.conclusion && (<><dt>Conclusion</dt><dd>{b.conclusion}</dd></>)}
+                      </dl>
+                    )}
+                  </article>
+                ))}
               </section>
             )}
 
@@ -355,42 +418,6 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                   </section>
                 )}
 
-                {visible.firac && (data.firac?.length ?? 0) > 0 && (
-                  <section className="case-section">
-                    <h3>
-                      {SECTION_LABELS.firac[lang]}{" "}
-                      <span className="case-count">
-                        {data.firac.length}{" "}
-                        {lang === "fr"
-                          ? data.firac.length === 1 ? "question" : "questions"
-                          : data.firac.length === 1 ? "issue" : "issues"}
-                      </span>
-                    </h3>
-                    {/* Blocks are ordered by seq; that order is the only thing
-                        preserving the sequence the issues were analysed in. */}
-                    {data.firac.map((b: ApiFirac) => (
-                      <article key={b.seq} className="firac">
-                        <button
-                          className="firac-issue"
-                          onClick={() => toggleBlock(b.seq)}
-                          aria-expanded={openBlocks.has(b.seq)}
-                        >
-                          <span className="firac-seq">{b.seq}</span>
-                          {b.issue}
-                        </button>
-                        {openBlocks.has(b.seq) && (
-                          <dl className="firac-body">
-                            {b.facts && (<><dt>Facts</dt><dd>{b.facts}</dd></>)}
-                            {b.rule && (<><dt>Rule</dt><dd>{b.rule}</dd></>)}
-                            {b.application && (<><dt>Application</dt><dd>{b.application}</dd></>)}
-                            {b.conclusion && (<><dt>Conclusion</dt><dd>{b.conclusion}</dd></>)}
-                          </dl>
-                        )}
-                      </article>
-                    ))}
-                  </section>
-                )}
-
                 {visible.text && (
                   <section className="case-section">
                     <div className="case-text-head">
@@ -430,7 +457,9 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
               </>
             )}
 
-            {data.url && (
+            {/* Notes view only — the case view carries this link in its header
+                instead, and one drawer should not offer it twice. */}
+            {view === "notes" && data.url && (
               <a
                 className="case-canlii"
                 href={data.url}

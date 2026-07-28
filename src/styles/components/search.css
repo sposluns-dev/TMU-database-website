@@ -244,21 +244,20 @@
 }
 
 /* ── Main ────────────────────────────────────────────────────────── */
-/* Two search inputs side by side: judgment text, and case name / citation.
-   The text field gets the extra room — its queries are phrases, whereas a
-   citation is short. Stacks on narrow screens. */
+/* Two search inputs stacked: keywords over the judgment text, then citations
+   (case name / citation). Stacked rather than side by side so each gets the
+   full width and the pair reads as an ordered list. */
 .search-split {
     display: flex;
-    gap: 0.75rem;
-    align-items: flex-end;
+    flex-direction: column;
+    gap: 0.6rem;
 }
 .search-field {
     display: flex;
     flex-direction: column;
     min-width: 0;
 }
-.search-field:first-child { flex: 2 1 0; }
-.search-field:last-child  { flex: 1 1 0; }
+.search-field .search-bar { margin-bottom: 0; }
 
 .search-field > label {
     margin-bottom: 0.3rem;
@@ -269,20 +268,23 @@
     color: var(--color-text-secondary);
 }
 
-@media (max-width: 720px) {
-    .search-split { flex-direction: column; align-items: stretch; }
+/* Combine row: the checkbox, plus the single Search button it reveals. */
+.search-combine-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.6rem 0 1rem;
 }
-
 .search-combine {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin: -0.5rem 0 0.9rem;
     font-size: 0.85rem;
     color: var(--color-text-secondary);
     cursor: pointer;
 }
 .search-combine input { flex: 0 0 auto; cursor: pointer; }
+.search-combine-row .search-go { margin-left: auto; }
 
 .search-bar {
     display: flex;
@@ -300,6 +302,7 @@
 }
 
 .search-bar button,
+.search-go,
 .toolbar-actions button {
     padding: 0.5rem 1rem;
     border: none;
@@ -311,10 +314,12 @@
     transition: background 0.2s ease;
 }
 .search-bar button:hover,
+.search-go:hover,
 .toolbar-actions button:hover {
     background: var(--color-turquoise-dark);
 }
 .search-bar button:disabled,
+.search-go:disabled,
 .toolbar-actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
