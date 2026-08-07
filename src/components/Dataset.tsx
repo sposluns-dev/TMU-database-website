@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useStats } from "../lib/stats";
 
 // Dataset / data-access page, modelled on a2aj.ca/data: what the collection is,
 // its coverage, and the ways to access it (search, Hugging Face, downloads, MCP).
@@ -15,14 +16,15 @@ const card = {
 } as const;
 
 export function Dataset() {
+  const stats = useStats();
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 20px 4rem" }}>
       <h1 style={heading}>Dataset</h1>
 
       <p>
-        This project curates <strong>1,599 Canadian court and tribunal
-        decisions</strong> relating to antisemitism, religious freedom, and hate
-        speech — drawn from the{" "}
+        This project curates <strong>{stats.total.toLocaleString()} Canadian court
+        and tribunal decisions</strong> relating to antisemitism, religious freedom,
+        and hate speech — drawn from the{" "}
         <a href="https://a2aj.ca/" target="_blank" rel="noopener noreferrer">
           A2AJ Canadian Legal Data
         </a>{" "}
@@ -32,12 +34,15 @@ export function Dataset() {
 
       <h2 style={heading}>Coverage</h2>
       <ul>
-        <li>1,599 curated decisions across all court levels &amp; tribunals</li>
+        <li>
+          {stats.total.toLocaleString()} curated decisions across all court levels
+          &amp; tribunals
+        </li>
         <li>
           Courts include the Supreme Court of Canada, Federal Court, provincial
           appellate, superior, and lower courts, and tribunals (CHRT, RPD/RAD)
         </li>
-        <li>Decisions dating from 1879 to 2026</li>
+        <li>Decisions dating from {stats.yearMin} to {stats.yearMax}</li>
       </ul>
 
       <h2 style={heading}>Access</h2>

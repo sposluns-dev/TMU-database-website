@@ -1,6 +1,9 @@
 import { motion, Variants } from "framer-motion";
+import { useStats } from "../lib/stats";
 
 export const Hero = () => {
+    const stats = useStats();
+
     // Animation variants
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
@@ -47,17 +50,21 @@ export const Hero = () => {
                     <h2 className="dataset-highlights-title">Dataset Highlights</h2>
                     <div className="dataset-highlights-grid">
                         <div className="highlight-stat">
-                            <span className="highlight-number">1,599</span>
+                            <span className="highlight-number">
+                                {stats.total.toLocaleString()}
+                            </span>
                             <span className="highlight-label">Total cases</span>
                         </div>
                         <div className="highlight-stat">
-                            <span className="highlight-number">58</span>
+                            <span className="highlight-number">{stats.courtCount}</span>
                             <span className="highlight-label">
-                                Courts across 10 jurisdictions
+                                Courts across {stats.jurisdictionCount} jurisdictions
                             </span>
                         </div>
                         <div className="highlight-stat">
-                            <span className="highlight-number">1879–2026</span>
+                            <span className="highlight-number">
+                                {stats.yearMin}–{stats.yearMax}
+                            </span>
                             <span className="highlight-label">Period covered</span>
                         </div>
                     </div>
