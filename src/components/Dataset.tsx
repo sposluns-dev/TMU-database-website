@@ -22,9 +22,9 @@ export function Dataset() {
       <h1 style={heading}>Dataset</h1>
 
       <p>
-        This project curates <strong>{stats.total.toLocaleString()} Canadian court
-        and tribunal decisions</strong> relating to antisemitism, religious freedom,
-        and hate speech — drawn from the{" "}
+        This project curates <strong>{stats ? stats.total.toLocaleString() : "—"}{" "}
+        Canadian court and tribunal decisions</strong> relating to antisemitism,
+        religious freedom, and hate speech — drawn from the{" "}
         <a href="https://a2aj.ca/" target="_blank" rel="noopener noreferrer">
           A2AJ Canadian Legal Data
         </a>{" "}
@@ -35,14 +35,16 @@ export function Dataset() {
       <h2 style={heading}>Coverage</h2>
       <ul>
         <li>
-          {stats.total.toLocaleString()} curated decisions across all court levels
-          &amp; tribunals
+          {stats ? stats.total.toLocaleString() : "—"} curated decisions across all
+          court levels &amp; tribunals
         </li>
         <li>
           Courts include the Supreme Court of Canada, Federal Court, provincial
           appellate, superior, and lower courts, and tribunals (CHRT, RPD/RAD)
         </li>
-        <li>Decisions dating from {stats.yearMin} to {stats.yearMax}</li>
+        <li>
+          Decisions dating from {stats ? `${stats.yearMin} to ${stats.yearMax}` : "—"}
+        </li>
       </ul>
 
       <h2 style={heading}>Access</h2>

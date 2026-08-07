@@ -51,19 +51,22 @@ export const Hero = () => {
                     <div className="dataset-highlights-grid">
                         <div className="highlight-stat">
                             <span className="highlight-number">
-                                {stats.total.toLocaleString()}
+                                {stats ? stats.total.toLocaleString() : "—"}
                             </span>
                             <span className="highlight-label">Total cases</span>
                         </div>
                         <div className="highlight-stat">
-                            <span className="highlight-number">{stats.courtCount}</span>
+                            <span className="highlight-number">
+                                {stats ? stats.courtCount : "—"}
+                            </span>
                             <span className="highlight-label">
-                                Courts across {stats.jurisdictionCount} jurisdictions
+                                Courts across {stats ? stats.jurisdictionCount : "—"}{" "}
+                                jurisdictions
                             </span>
                         </div>
                         <div className="highlight-stat">
                             <span className="highlight-number">
-                                {stats.yearMin}–{stats.yearMax}
+                                {stats ? `${stats.yearMin}–${stats.yearMax}` : "—"}
                             </span>
                             <span className="highlight-label">Period covered</span>
                         </div>
