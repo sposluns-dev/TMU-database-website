@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from "react";
 import { apiCase, type ApiCaseDetail, type ApiFirac } from "../lib/api";
-import { placeLabel, registryLabel, levelLabel } from "../lib/geo";
+import { placeLabel, registryLabel } from "../lib/geo";
 import "../styles/components/case-detail.css";
 
 interface Props {
@@ -223,9 +223,6 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                   <span className="case-id">{data.case_id}</span>
                 )}
                 <span className="case-citation">{data.citation}</span>
-                <span className={`case-level case-level-${data.level}`}>
-                  {levelLabel(data.level, lang)}
-                </span>
               </div>
               <h2>{data.case_name}</h2>
               <div className="case-facts">
@@ -239,8 +236,10 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
 
               {/* CanLII sits directly under the identifying block, top right —
                   the authoritative source is the first thing a reader wants
-                  once they know which case they are looking at. */}
-              {view === "case" && data.url && (
+                  once they know which case they are looking at. Shown in both
+                  views so the notes view never buries it below the generation
+                  notes (where it was getting clipped). */}
+              {data.url && (
                 <a
                   className="case-canlii case-canlii-top"
                   href={data.url}
@@ -484,18 +483,6 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
               </>
             )}
 
-            {/* Notes view only — the case view carries this link in its header
-                instead, and one drawer should not offer it twice. */}
-            {view === "notes" && data.url && (
-              <a
-                className="case-canlii"
-                href={data.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View on CanLII ↗
-              </a>
-            )}
           </>
         )}
       </aside>

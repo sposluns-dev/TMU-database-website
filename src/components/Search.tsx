@@ -20,7 +20,7 @@ import {
   type CitationFormat,
 } from "../lib/export";
 import { mcgillCitation } from "../lib/citation";
-import { COURT_TYPES, courtLabel } from "../lib/taxonomy";
+import { COURT_TYPES, courtLabel, courtType } from "../lib/taxonomy";
 import { USE_API, apiKeywords } from "../lib/api";
 import { MultiFilter } from "./MultiFilter";
 import { KeywordTree, type TreeTerm } from "./KeywordTree";
@@ -329,7 +329,19 @@ export function Search() {
     if (await copyText(citationsToText(rs))) flashCopied(LIST_COPY_ID);
   };
 
-  const courts = index?.facets.courts ?? [];
+  // Court filter ordered by court level: Supreme → Courts of Appeal →
+  // Superior/first-instance → Federal → Tribunals (per COURT_TYPES), then
+  // alphabetically within each level. Unclassified codes fall to the end.
+  const courts = useMemo(() => {
+    const raw = index?.facets.courts ?? [];
+    const rank = (code: string) => {
+      const t = courtType(code);
+      const i = t ? COURT_TYPES.indexOf(t) : -1;
+      return i === -1 ? COURT_TYPES.length : i;
+    };
+    return [...raw].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  }, [index]);
+
   const yearMin = index?.facets.year_min ?? "";
   const yearMax = index?.facets.year_max ?? "";
 
@@ -688,11 +700,6 @@ export function Search() {
                 <div className="result-meta">
                   <span>{r.date}</span>
                   {place && <span className="result-place">{place}</span>}
-                  {r.level && (
-                    <span className="result-level">
-                      {r.level === "upper" ? "Upper court" : "Lower court"}
-                    </span>
-                  )}
                   {r.relevance != null && (
                     <span className="result-score" title="Hybrid BM25 + keyword-tag score">
                       score {r.relevance.toFixed(1)}
