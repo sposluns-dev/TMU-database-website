@@ -846,6 +846,23 @@ def shape(row: sqlite3.Row, rank: int, conn: sqlite3.Connection) -> dict:
     d["mots_cles"] = [k["fr"] for k in kw if k["fr"]]
     d["keyword_ids"] = [k["keyword_id"] for k in kw]
     d["relevance"] = round(d["relevance"], 4) if d.get("relevance") is not None else None
+
+    # WHERE the query matched, as a plain label. Without this a family-promoted
+    # case — one returned because a sibling record matched, with none of the query
+    # terms in its own text — reads as a false positive on the result card.
+    #
+    # Derived from the band rather than exposed as a raw number, so the client
+    # never has to know the band constants. `relevance - band` is the case's own
+    # score: zero in the body band means it was promoted, not matched.
+    band = d.pop("band", None)
+    if band is None or d.get("relevance") is None:
+        d["matched"] = None
+    elif band >= BAND_NAME:
+        d["matched"] = "case_name"
+    elif band >= BAND_PARTIES:
+        d["matched"] = "parties"
+    else:
+        d["matched"] = "text" if d["relevance"] - band > 0 else "family"
     return d
 
 
@@ -853,16 +870,33 @@ def shape(row: sqlite3.Row, rank: int, conn: sqlite3.Connection) -> dict:
 # Band offsets. Each priority occupies its own contiguous score range, and the
 # ranges are spaced far enough apart that a match in a higher priority outranks
 # ANY match in a lower one no matter how well the lower one scored. Within a band,
-# the tier's own score only breaks ties. Priorities 2 and 3 are not built yet;
-# their offsets are reserved here so the bands do not have to move later.
+# the tier's own score only breaks ties. All three are built.
 BAND_NAME = 3_000_000.0     # 1. matched the case name
-BAND_PARTIES = 2_000_000.0  # 2. matched the parties text      (not built)
-BAND_BODY = 1_000_000.0     # 3. matched the body of the text  (not built)
+BAND_PARTIES = 2_000_000.0  # 2. matched the parties text
+BAND_BODY = 1_000_000.0     # 3. matched the body of the text
 
-# Ordering INSIDE the case-name band, by how exactly the query matched.
-N_EXACT = 30_000.0   # the whole style of cause was typed
-N_PREFIX = 20_000.0  # the name starts with the query
-N_RUN = 10_000.0     # the query appears as one contiguous run
+# Ordering INSIDE the name and parties bands: the spec's three match levels.
+#
+#   1  the whole phrase, in order        "snyder v montreal gazette ltd"
+#   2  all terms, any order              "snyder gazette"
+#   3  at least one term                 "gazette keegstra"
+#
+# The levels nest — a phrase match is also an all-terms match — so the CASE that
+# assigns them is ordered strongest-first and stops at the first hit.
+#
+# Level 3 is the one that changes behaviour most: before it existed, a query had
+# to match EVERY term or the case did not appear in this band at all. "gazette
+# keegstra" returned nothing from the name band despite naming two real cases.
+L_PHRASE = 30_000.0
+L_ALL = 20_000.0
+L_ANY = 10_000.0
+
+# Refinements WITHIN level 1, kept from the previous implementation because they
+# are measurably right: "R. v. Keegstra" typed in full should beat a case that
+# merely contains that run. Both are smaller than the gap between levels, so they
+# can never lift a level-2 match above a level-1 one.
+N_EXACT = 5_000.0    # the whole style of cause was typed, exactly
+N_PREFIX = 2_500.0   # the name STARTS with the query
 
 # Ordering INSIDE the body band: a judgment containing the words the user actually
 # typed outranks one reached only by expanding a synonym ring. Both are real hits —
@@ -905,32 +939,44 @@ v c r et al ex rel
 """.split())
 
 
-# Court hierarchy, ascending = more authoritative. Within a band, results sort by
+# Court hierarchy λ, ascending = more authoritative. Within a band, results sort by
 # this BEFORE how exactly they matched: given several cases of the same name, the
 # researcher wants the highest court first — searching "Keegstra" should lead with
 # the SCC, not with whichever record happens to score best on bm25.
 #
-# Every court code present in the corpus is listed explicitly rather than pattern
-# matched: "*CA" would catch ONCA but also miss ONSCDC (Ontario Divisional Court,
-# which IS appellate) and wrongly sweep in nothing useful. Unlisted codes fall to
-# 4, which is where the administrative tribunals (RPD, RAD, CHRT, FPSLREB, SST)
-# belong anyway.
-#   0 Supreme Court of Canada
-#   1 appellate — provincial courts of appeal, FCA, Divisional/Appeal Divisions
-#   2 superior trial — s.96 superior courts, Federal Court, Tax Court
-#   3 provincial/inferior trial — provincial courts, municipal, small claims
-#   4 tribunals and anything unrecognised
+# This is the table from the search-ordering spec, verified to cover ALL 57 court
+# codes present in the corpus — no code falls through to the ELSE.
+#
+#   1 Supreme Court of Canada
+#   2 Court of Appeal — provincial courts of appeal, FCA, Divisional/Appeal Divisions
+#   3 Superior / Trial — s.96 superior courts AND provincial/inferior trial courts
+#   4 Federal Court — FC, TCC
+#   5 Tribunal — RPD, RAD, CHRT, FPSLREB, SST, and anything unrecognised
+#
+# TWO DELIBERATE DIFFERENCES from the hierarchy this replaced, both from the spec:
+#
+#   Superior and provincial trial courts are ONE band. Previously ONSC (s.96
+#   superior) outranked ONCJ (provincial). They now tie and fall through to the
+#   next sort key.
+#
+#   Federal Court and the Tax Court sit at 4, BELOW provincial trial courts, where
+#   they were previously 2 (level with the superior courts). This is the spec's
+#   call and it is the one worth re-reading before trusting the output: FC is a
+#   s.101 superior court, so ranking it under ONCJ is a statement about this
+#   corpus's subject matter — most FC records here are immigration judicial
+#   reviews — rather than about judicial hierarchy generally.
 COURT_RANK = """CASE
-    WHEN c.court = 'SCC' THEN 0
-    WHEN c.court IN ('ONCA','BCCA','QCCA','ABCA','SKCA','MBCA','NSCA','NBCA',
-                     'NLCA','NWTCA','YKCA','NUCA','FCA','PESCAD','QCQBA',
-                     'ONSCDC','ONSCAD','ONCTGDDC') THEN 1
-    WHEN c.court IN ('ONSC','BCSC','QCCS','FC','ABQB','ABKB','MBQB','MBKB',
-                     'SKQB','SKKB','NSSC','NBQB','NBKB','NBSC','NLSC','YKSC',
-                     'SKSC','PESC','PESCTD','ABSCTD','ONHCJ','ONCTGD','TCC') THEN 2
-    WHEN c.court IN ('ONCJ','QCCQ','BCPC','ABPC','ABCJ','MBPC','SKPC','NLPC',
-                     'QCCM','ONPROVCT','ONCTPD','ONSCSM') THEN 3
-    ELSE 4
+    WHEN c.court = 'SCC' THEN 1
+    WHEN c.court IN ('ONCA','BCCA','QCCA','ABCA','SKCA','MBCA','FCA','NBCA',
+                     'NLCA','NSCA','ONSCDC','ONSCAD','NWTCA','ONCTGDDC',
+                     'PESCAD','QCQBA') THEN 2
+    WHEN c.court IN ('ONSC','BCSC','QCCS','ONCJ','QCCQ','ABQB','MBQB','SKQB',
+                     'ONHCJ','ABPC','NBQB','ONCTGD','BCPC','YKSC','ABKB','NSSC',
+                     'MBKB','QCCM','ABCJ','MBPC','ONPROVCT','SKPC','NLPC',
+                     'ONSCSM','PESC','ABSCTD','NBKB','NBSC','NLSC','ONCTPD',
+                     'PESCTD','SKKB','SKSC') THEN 3
+    WHEN c.court IN ('FC','TCC') THEN 4
+    ELSE 5
 END"""
 
 
@@ -1103,11 +1149,16 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
         ctes, cps, joins, rank, score, where = _ranked(
             "n", "case_name", name_score_expr(), exprs)
         return SqlReturn(ctes, cps, f"""
-        SELECT c.case_id, ? AS band, {rank} AS term_rank, {score} AS score,
+        SELECT c.case_id, ? AS band, {rank} AS term_rank,
+               -- A boolean query states its own conditions; there is no "how well
+               -- did it match" to grade, so every grammar hit sits at one level
+               -- and ordering falls through to term_rank, then the court
+               -- hierarchy, then score.
+               ? AS lvl, 0 AS sub, {score} AS score,
                NULL AS excerpt
         FROM cases c
         {joins}
-        WHERE {where}""", [BAND_NAME])
+        WHERE {where}""", [BAND_NAME, L_ALL])
 
     ctes: list[str] = []
     cte_params: list = []
@@ -1120,15 +1171,14 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
         # function bm25 in the requested context". Materialising pins the bm25
         # evaluation inside the CTE. (SQLite >= 3.35.)
         #
-        # Pinned per token rather than once around the group: `{col} : (a AND b)`
-        # parses, but the filter's scope over a parenthesised expression is easy to
-        # get subtly wrong. Tokens are alphanumeric (see tokens()), so they cannot
-        # break out of the quoting.
+        # OR, not AND, since level 3 admits a case that matched only one term. The
+        # level CASE below does the band separation; this only supplies a bm25
+        # tie-break within a level.
         ctes.append(f"""nm AS MATERIALIZED (
             SELECT rowid AS rid, {name_score_expr()} AS s
             FROM names_fts WHERE names_fts MATCH ?
         )""")
-        cte_params.append(" AND ".join(f'{{case_name}} : "{t}"*' for t in toks))
+        cte_params.append(" OR ".join(f'{{case_name}} : "{t}"*' for t in toks))
         join, fts_score, fts_hit = ("LEFT JOIN nm ON nm.rid = c.rowid",
                                     "COALESCE(nm.s, 0)", "nm.rid IS NOT NULL")
     else:
@@ -1142,21 +1192,74 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
     # alphanumerics and single spaces, so a word starts at position 1 or after a
     # space. This also lines the LIKE branch up with the FTS branch, which is
     # prefix-matching too.
-    like = " AND ".join([f"({NAME_CIT} LIKE ? OR {NAME_CIT} LIKE ?)"] * len(toks))
+    tok_hit = f"({NAME_CIT} LIKE ? OR {NAME_CIT} LIKE ?)"
+    hits_sum = " + ".join([f"CASE WHEN {tok_hit} THEN 1 ELSE 0 END"] * len(toks))
+
+    # Level 3 admits a case on ONE matching term, which makes the stop words this
+    # priority deliberately keeps (see the STOP_WORDS note) dangerous here: "v"
+    # alone is in 75% of captions, so `snyder v montreal gazette ltd` matched 1,233
+    # cases on the strength of its "v". Ranking still put Snyder first, but the
+    # result count was meaningless.
+    #
+    # So stop words count toward the LEVEL and the tie-break, but cannot by
+    # themselves admit a case. A case qualifies when it matched every term (levels
+    # 1-2, where a structural "v" is real evidence) or matched at least one
+    # CONTENT term (level 3).
+    content = [t for t in toks if t not in STOP_WORDS]
+    chits_sum = (" + ".join([f"CASE WHEN {tok_hit} THEN 1 ELSE 0 END"] * len(content))
+                 if content else "0")
+
+    # The per-token hit count is needed three times over (to pick the level, to
+    # break ties inside level 3, and to filter), so it is computed ONCE in an
+    # inner select and referenced by name. Repeating the expression instead would
+    # triple the bind parameters and the chance of getting their order wrong.
+    inner = f"""
+            SELECT c.case_id AS cid,
+                   {fts_score} AS fs,
+                   CASE WHEN {fts_hit} THEN 1 ELSE 0 END AS fh,
+                   ({hits_sum}) AS hits,
+                   ({chits_sum}) AS chits,
+                   CASE WHEN {NAME_CIT} LIKE ? THEN 1 ELSE 0 END AS run,
+                   CASE WHEN norm(c.case_name) = ? THEN 1 ELSE 0 END AS exact,
+                   CASE WHEN {NAME_CIT} LIKE ? THEN 1 ELSE 0 END AS pref
+            FROM cases c
+            {join}"""
+
+    # `lvl` and `sub` are emitted as their own columns rather than folded into the
+    # score, because ORDER BY has to apply them BEFORE the court hierarchy: the
+    # spec ranks a level-2 SCC record below a level-1 provincial one. `sub` carries
+    # the hit count, but only at level 3 — levels 1 and 2 go straight to court
+    # order, so their sub is 0 and cannot disturb it.
+    #
+    # The exact/prefix bonuses stay inside `score` alone, which sorts AFTER the
+    # court hierarchy. They therefore refine ties without overriding the spec's
+    # "λ ascending within a level".
     select = f"""
-        SELECT c.case_id, ? AS band, 0 AS term_rank,
-               {fts_score}
-               + CASE WHEN norm(c.case_name) = ? THEN ? ELSE 0 END
-               + CASE WHEN {NAME_CIT} LIKE ? THEN ? ELSE 0 END
-               + CASE WHEN {NAME_CIT} LIKE ? THEN ? ELSE 0 END AS score,
+        SELECT case_id, band, term_rank, lvl, sub,
+               fs + lvl + sub
+               + CASE WHEN exact = 1 THEN ? ELSE 0 END
+               + CASE WHEN pref = 1 THEN ? ELSE 0 END AS score,
                NULL AS excerpt
-        FROM cases c
-        {join}
-        WHERE {fts_hit} OR ({like})"""
-    # Bind in the order the `?` appear in the SELECT's TEXT: band, then the three
-    # bonuses, then the LIKE in the WHERE.
-    select_params = ([BAND_NAME, nq, N_EXACT, f"{nq}%", N_PREFIX, f"%{nq}%", N_RUN]
-                     + [p for t in toks for p in (f"{t}%", f"% {t}%")])
+        FROM (
+            SELECT cid AS case_id, ? AS band, 0 AS term_rank, fs, exact, pref,
+                   CASE WHEN run = 1 THEN ? WHEN hits = ? THEN ? ELSE ? END AS lvl,
+                   CASE WHEN run = 1 OR hits = ? THEN 0 ELSE hits END AS sub
+            FROM ({inner})
+            WHERE hits = ? OR chits > 0
+        )"""
+
+    # Bind in the order the `?` appear in the SQL TEXT: the outermost SELECT's
+    # bonuses, then the middle SELECT's band/level constants, then the innermost
+    # select's (all-token LIKEs, content-token LIKEs, run/exact/pref), then the
+    # middle WHERE.
+    select_params = (
+        [N_EXACT, N_PREFIX,
+         BAND_NAME, L_PHRASE, len(toks), L_ALL, L_ANY, len(toks)]
+        + [p for t in toks for p in (f"{t}%", f"% {t}%")]
+        + [p for t in content for p in (f"{t}%", f"% {t}%")]
+        + [f"%{nq}%", nq, f"{nq}%"]
+        + [len(toks)]
+    )
     return SqlReturn(ctes, cte_params, select, select_params)
 
 
@@ -1193,23 +1296,58 @@ def match_parties(q: str, toks: list[str]) -> SqlReturn | None:
         ctes, cps, joins, rank, score, where = _ranked(
             "p", party_cols(), party_score_expr(), exprs)
         return SqlReturn(ctes, cps, f"""
-        SELECT c.case_id, ? AS band, {rank} AS term_rank, {score} AS score,
+        SELECT c.case_id, ? AS band, {rank} AS term_rank,
+               -- A boolean query states its own conditions; there is no "how well
+               -- did it match" to grade, so every grammar hit sits at one level
+               -- and ordering falls through to term_rank, then the court
+               -- hierarchy, then score.
+               ? AS lvl, 0 AS sub, {score} AS score,
                NULL AS excerpt
         FROM cases c
         {joins}
-        WHERE {where}""", [BAND_PARTIES])
+        WHERE {where}""", [BAND_PARTIES, L_ALL])
 
-    ctes = [f"""pm AS MATERIALIZED (
+    # Two levels, mirroring priority 1 minus the phrase level: a flat list of party
+    # names has no "style of cause" to match in order, so the spec gives this
+    # priority only all-terms and any-term.
+    #
+    # One CTE per token rather than one ANDed MATCH, because the level and the
+    # any-term tie-break both need to know HOW MANY tokens matched, not just that
+    # the conjunction held.
+    ctes, cte_params, joins, hit_flags = [], [], [], []
+    for i, t in enumerate(pt):
+        ctes.append(f"""pm{i} AS MATERIALIZED (
         SELECT rowid AS rid, {party_score_expr()} AS s
         FROM names_fts WHERE names_fts MATCH ?
-    )"""]
-    cte_params = [" AND ".join(f'{{{party_cols()}}} : "{t}"*' for t in pt)]
-    # INNER join: a row only belongs to this band if the parties matched. "No
-    # matches on parties -> no results here" falls straight out of that.
-    select = """
-        SELECT c.case_id, ? AS band, 0 AS term_rank, pm.s AS score, NULL AS excerpt
-        FROM cases c JOIN pm ON pm.rid = c.rowid"""
-    return SqlReturn(ctes, cte_params, select, [BAND_PARTIES])
+    )""")
+        cte_params.append(f'{{{party_cols()}}} : "{t}"*')
+        joins.append(f"LEFT JOIN pm{i} ON pm{i}.rid = c.rowid")
+        hit_flags.append(f"CASE WHEN pm{i}.rid IS NOT NULL THEN 1 ELSE 0 END")
+
+    hits_sum = " + ".join(hit_flags)
+    # Any matching token's bm25 will do as the tie-break — they are all scores of
+    # the same row against the same column, so COALESCE picks the first present.
+    score_x = ", ".join(f"pm{i}.s" for i in range(len(pt)))
+
+    inner = f"""
+            SELECT c.case_id AS cid,
+                   COALESCE({score_x}, 0) AS fs,
+                   ({hits_sum}) AS hits
+            FROM cases c
+            {chr(10).join('            ' + j for j in joins).lstrip()}"""
+
+    select = f"""
+        SELECT case_id, band, term_rank, lvl, sub, fs + lvl + sub AS score,
+               NULL AS excerpt
+        FROM (
+            SELECT cid AS case_id, ? AS band, 0 AS term_rank, fs,
+                   CASE WHEN hits = ? THEN ? ELSE ? END AS lvl,
+                   CASE WHEN hits = ? THEN 0 ELSE hits END AS sub
+            FROM ({inner})
+            WHERE hits > 0
+        )"""
+    return SqlReturn(ctes, cte_params, select,
+                     [BAND_PARTIES, len(pt), L_ALL, L_ANY, len(pt)])
 
 
 # ====================================================================== 3 ====
@@ -1340,24 +1478,64 @@ def match_body(q: str) -> SqlReturn | None:
 
     # B_EXACT rides on the literal branches: a case reached only through a synonym
     # ring stays below one that used the user's own words, within the same rank.
-    select = f"""
-        SELECT c.case_id, ? AS band, {or_rank(per_operand)} AS term_rank,
+    #
+    # ---- FAMILY PROMOTION ---------------------------------------------------
+    # The direct hits go into `bmatch`; `bfam` reduces them to the best score per
+    # name_key. The final select then joins CASES back to `bfam`, so every member
+    # of a family with any hit is returned — including members that matched
+    # nothing at all.
+    #
+    # This is the rule that surfaces a Supreme Court affirmation containing none of
+    # the query terms because its trial-level sibling scored: searching
+    # "pleadings" hits only the QCCS record of Snyder, and the QCCA and SCC records
+    # come with it, ordered above it because they are the higher courts.
+    #
+    # `lvl` is the FAMILY's best score, not the case's own, so an entire family
+    # sorts as one block; `score` keeps the case's own β for display. A case whose
+    # name_key is NULL (the 122 anonymized RAD decisions) is its own family of one
+    # via the COALESCE, so it is never promoted and never promotes anything.
+    ctes.append(f"""bmatch AS MATERIALIZED (
+        SELECT c.case_id AS case_id, c.name_key AS name_key,
                COALESCE({', '.join(scores)}, 0)
-               + CASE WHEN {' OR '.join(exact_hits)} THEN ? ELSE 0 END AS score,
-               NULL AS excerpt
+               + CASE WHEN {' OR '.join(exact_hits)} THEN ? ELSE 0 END AS s,
+               {or_rank(per_operand)} AS tr
         FROM cases c
         {chr(10).join('        ' + j for j in joins).lstrip()}
-        WHERE {' OR '.join(per_operand)}"""
-    return SqlReturn(ctes, cte_params, select, [BAND_BODY, B_EXACT])
+        WHERE {' OR '.join(per_operand)}
+    )""")
+    cte_params.append(B_EXACT)
+    ctes.append("""bfam AS MATERIALIZED (
+        SELECT name_key, MAX(s) AS fs, MIN(tr) AS tr
+        FROM bmatch WHERE name_key IS NOT NULL GROUP BY name_key
+    )""")
+
+    select = """
+        SELECT c.case_id, ? AS band,
+               COALESCE(f.tr, m.tr) AS term_rank,
+               COALESCE(f.fs, m.s) AS lvl,
+               0 AS sub,
+               COALESCE(m.s, 0) AS score,
+               NULL AS excerpt
+        FROM cases c
+        LEFT JOIN bmatch m ON m.case_id = c.case_id
+        LEFT JOIN bfam   f ON f.name_key = c.name_key
+        WHERE m.case_id IS NOT NULL OR f.name_key IS NOT NULL"""
+    return SqlReturn(ctes, cte_params, select, [BAND_BODY])
 
 
 @app.get("/search")
 def search(
     q: str = Query("", max_length=MAX_Q_CHARS,
-                   description="Free text. Priority 1 of 3 is built: matches "
-                               "against the case name and citation."),
+                   description="Free text, matched against the case name and "
+                               "citation, the parties, and the judgment text."),
     name_q: str = Query("", description="Case name / citation filter, ANDed with "
                                         "everything else."),
+    in_name: bool = Query(True, description="Search the case name and citation "
+                                            "(priority 1)."),
+    in_parties: bool = Query(True, description="Search the party names "
+                                               "(priority 2)."),
+    in_text: bool = Query(True, description="Search the judgment text "
+                                            "(priority 3)."),
     limit: int = Query(50, ge=1, le=MAX_LIMIT),
     k: int | None = Query(None, ge=1, le=MAX_LIMIT, description="Alias for limit."),
     offset: int = Query(0, ge=0),
@@ -1376,9 +1554,15 @@ def search(
 ):
     """Search, ranked by WHERE the query matched.
 
-        1. the query matches the CASE NAME      <- built
-        2. the query matches the PARTIES text   <- not built
-        3. the query matches the BODY text      <- not built
+        1. the query matches the CASE NAME
+        2. the query matches the PARTIES text
+        3. the query matches the BODY text
+
+    Each can be switched off independently with in_name / in_parties / in_text,
+    which is what the three checkboxes on the search page drive. Turning one off
+    removes its fragment from the union entirely — it does not merely hide the
+    results, so a case reachable ONLY through that priority disappears. All three
+    off is rejected rather than silently returning everything.
 
     ONE query. Each priority is a helper below returning SQL — a list of CTEs and
     a single `SELECT case_id, band, score` — and the helpers' selects are UNIONed
@@ -1392,6 +1576,22 @@ def search(
     limit = k or limit
     toks = tokens(q)[:MAX_OPERANDS]
     nq = norm(q)
+
+    # All three off asks for nothing. Rejected explicitly rather than falling
+    # through to an empty union, which would return the whole corpus unfiltered
+    # and look like the toggles had done the opposite of what was asked.
+    if not (in_name or in_parties or in_text):
+        return {
+            "query": q,
+            "mode": "no_scope",
+            "expanded_to": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "results": [],
+            "warning": "Select at least one of case name, parties, or text to "
+                       "search in.",
+        }
 
     # `expanded_to` is part of the response CONTRACT, not a nicety: the frontend
     # does `data.expanded_to.map(...)` unconditionally (api.ts) and renders the
@@ -1428,6 +1628,11 @@ def search(
                        "narrowed. Add a party name, a citation, or a keyword.",
         }
 
+    # Which priorities this request actually searched — echoed back so the client
+    # can show what was in scope without re-deriving it from the three flags.
+    scoped = ([n for n, on in (("case_name", in_name), ("parties", in_parties),
+                               ("body", in_text)) if on])
+
     mode = "browse" if not toks else "search"
     where, fparams = build_filters(court, province, practice_area, keyword,
                                    keyword_mode, language, level, date_from, date_to,
@@ -1448,12 +1653,12 @@ def search(
         # None when it has nothing to contribute. Order matters: params bind in the
         # order the `?` appear in the assembled SQL TEXT, which is every CTE first
         # (in fragment order) and then every select (in the same order).
-        frags = [f for f in (match_case_name(q, toks, nq),
-                             match_parties(q, toks),
-                             match_body(q)) if f]
+        frags = [f for f in (match_case_name(q, toks, nq) if in_name else None,
+                             match_parties(q, toks) if in_parties else None,
+                             match_body(q) if in_text else None) if f]
         if not frags:
             return {"query": q, "mode": mode,
-                    "priorities_built": ["case_name", "parties", "body"],
+                    "priorities_built": scoped,
                     "expanded_to": expanded_to,
                     "total": 0, "limit": limit, "offset": offset, "results": []}
         ctes = [c for f in frags for c in f.ctes]
@@ -1463,12 +1668,31 @@ def search(
         # `best` collapses a case to its single strongest hit. MAX(band) and
         # MAX(band + score) always agree on which row wins, because the bands are
         # spaced 1,000,000 apart and no in-band score approaches that.
-        order = (f"best.band DESC, best.term_rank ASC, {COURT_RANK} ASC, "
-                 f"best.relevance DESC, c.date DESC"
+        # The spec's ordering, one key list for every band because each priority
+        # supplies its own `lvl` and `sub`:
+        #
+        #   band       which priority the case is placed at (1 beats 2 beats 3)
+        #   term_rank  which OR operand matched first — "keegstra OR zundel" puts
+        #              every keegstra hit above every zundel hit. Always 0 for a
+        #              plain query, so it is a no-op unless grammar was used.
+        #   lvl        priorities 1-2: match level (phrase > all terms > any term)
+        #              priority 3:     the FAMILY's best bm25, so a family sorts
+        #                              as one block
+        #   sub        priorities 1-2: hit count, but only at the any-term level
+        #              priority 3:     always 0
+        #   λ          court hierarchy, most authoritative first
+        #   relevance / date  final tie-breaks (the exact-name bonus lives here)
+        #
+        # λ sitting AFTER lvl is the point: a level-2 SCC record ranks below a
+        # level-1 provincial one, because how well the query matched decides the
+        # block and the court hierarchy only orders within it.
+        order = (f"best.band DESC, best.term_rank ASC, best.lvl DESC, "
+                 f"best.sub DESC, {COURT_RANK} ASC, best.relevance DESC, "
+                 f"c.date DESC"
                  if sort == "relevance" else SORTS[sort])
         base = f"""
             WITH {", ".join(ctes) + "," if ctes else ""}
-            hits(case_id, band, term_rank, score, excerpt) AS (
+            hits(case_id, band, term_rank, lvl, sub, score, excerpt) AS (
                 {" UNION ALL ".join(selects)}
             ),
             best AS (
@@ -1476,16 +1700,18 @@ def search(
                 -- excerpt. A plain GROUP BY could give MAX(band+score) from one row
                 -- and an excerpt from another, so the winner is picked by
                 -- ROW_NUMBER instead of aggregated.
-                SELECT case_id, band, term_rank, relevance, excerpt FROM (
-                    SELECT case_id, band, term_rank, band + score AS relevance,
-                           excerpt,
+                SELECT case_id, band, term_rank, lvl, sub, relevance, excerpt FROM (
+                    SELECT case_id, band, term_rank, lvl, sub,
+                           band + score AS relevance, excerpt,
                            ROW_NUMBER() OVER (PARTITION BY case_id
                                               ORDER BY band DESC, term_rank ASC,
+                                                       lvl DESC, sub DESC,
                                                        score DESC) AS rn
                     FROM hits
                 ) WHERE rn = 1
             )
-            SELECT {SELECT_COLS}, best.excerpt AS excerpt, best.relevance AS relevance
+            SELECT {SELECT_COLS}, best.excerpt AS excerpt, best.relevance AS relevance,
+                   best.band AS band
             FROM best
             JOIN cases c ON c.case_id = best.case_id
             LEFT JOIN case_metadata m ON m.case_id = c.case_id
@@ -1518,7 +1744,7 @@ def search(
     return {
         "query": q,
         "mode": mode,
-        "priorities_built": ["case_name", "parties", "body"],
+        "priorities_built": scoped,
         "expanded_to": expanded_to,
         "total": total,
         "limit": limit,

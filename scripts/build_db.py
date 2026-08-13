@@ -41,6 +41,7 @@ import os
 import re
 import sqlite3
 import sys
+import unicodedata
 from datetime import datetime
 
 ROOT     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -276,6 +277,54 @@ def load_keywords(conn):
     return len(rows)
 
 
+# Abbreviations expanded so the same litigation keys identically however the
+# reporter wrote it. Only forms actually present in this corpus, and only ones
+# with a single unambiguous expansion -- "S.C." could be Supreme Court or Superior
+# Court, so it is deliberately absent.
+NAME_ABBREV = {
+    "ltd": "limited", "ltee": "limited", "inc": "incorporated",
+    "co": "company", "cie": "company", "corp": "corporation",
+    "assn": "association", "soc": "society", "dist": "district",
+    "bd": "board", "dept": "department",
+}
+
+# Captions that identify no litigation. The 122 anonymized RAD decisions all
+# share "[no public name]", which without this would be ONE 122-member family --
+# a single text hit anywhere in it would promote all 122 into the results.
+NAME_PLACEHOLDERS = ("no public name",)
+
+
+def name_key(case_name):
+    """Normalized caption, shared by every record of the same litigation.
+
+    "Snyder v. Montreal Gazette Ltd." at QCCS, QCCA and SCC -> the same key, so
+    priority 3 can promote the whole family when any member matches.
+
+    Deliberately drops the separator (`v`, `vs`, `c`) rather than unifying it.
+    That is what merges the French and English records of one Quebec case:
+    verified on this corpus it correctly joins "Syndicat Northcrest c. Amselem"
+    (QCCS) to "Syndicat Northcrest v. Amselem" (SCC), plus the Joseph/Concordia
+    and Bou Malhab pairs.
+
+    Returns None where no family should be formed -- the caller stores NULL.
+
+    Best-effort by nature: the corpus has no docket number, so the caption is all
+    there is. Measured on 1,587 cases this yields 1,272 singletons and 80
+    families, the largest being 6 (R. v. Keegstra across ABQB/ABCA/SCC).
+    """
+    if not case_name:
+        return None
+    s = unicodedata.normalize("NFKD", case_name)
+    s = "".join(ch for ch in s if not unicodedata.combining(ch)).lower()
+    if any(p in s for p in NAME_PLACEHOLDERS):
+        return None
+    s = re.sub(r"\(\s*no\.?\s*\d+\s*\)", " ", s)     # drop "(No. 1)"
+    s = re.sub(r"\bet\s+al\b", " ", s)               # drop "et al"
+    s = re.sub(r"[^a-z0-9]+", " ", s)                # fold punctuation
+    toks = [NAME_ABBREV.get(t, t) for t in s.split() if t not in ("v", "vs", "c")]
+    return " ".join(toks) or None
+
+
 def load_cases(conn):
     n = 0
     for path, prefix in ((LOWER, "LC"), (UPPER, "UC")):
@@ -285,20 +334,23 @@ def load_cases(conn):
             if cid is None:
                 skipped.append(("cases", f"<{path}>", "no id"))
                 continue
+            nm = clean(d.get("case_name"))
             rows.append((
                 cid,
                 clean(d.get("citation")),
-                clean(d.get("case_name")),
+                nm,
                 clean(d.get("court")),
                 norm_date(d.get("date"), cid),
                 norm_language(d.get("language"), cid),
                 norm_url(d.get("url"), cid),
                 norm_source(d.get("source"), cid),
                 clean(d.get("text")),
+                name_key(nm),
             ))
         conn.executemany(
             "INSERT INTO cases (case_id, citation, case_name, court, date, "
-            "language, url, source, text) VALUES (?,?,?,?,?,?,?,?,?)", rows)
+            "language, url, source, text, name_key) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            rows)
         n += len(rows)
     return n
 

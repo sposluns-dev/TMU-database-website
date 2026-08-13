@@ -30,6 +30,23 @@ CREATE TABLE IF NOT EXISTS cases (
     source    TEXT,               -- 'CanLII' | 'A2AJ'       (validated below)
     text      TEXT,               -- full judgment text
 
+    -- Normalized case name, shared by every record of the same litigation:
+    -- "Snyder v. Montreal Gazette Ltd." at QCCS, QCCA and SCC all key to
+    -- 'snyder montreal gazette limited'. This is what priority 3 groups on so a
+    -- strong hit on a trial judgment promotes its appellate and Supreme Court
+    -- siblings, which are the ultimate finding even when they match nothing.
+    --
+    -- MATERIALIZED, not computed in SQL: the abbreviation expansion
+    -- (Ltd. -> limited, Cie -> company) is a lookup table, and folding accents
+    -- needs NFKD. Neither is practical in pure SQLite. scripts/build_db.py owns
+    -- the definition -- see name_key() there, and change it in ONE place.
+    --
+    -- NULL means "no family": the case is never grouped and never promoted.
+    -- Used for the 122 anonymized RAD decisions all captioned
+    -- "[no public name]", which would otherwise form one 122-member family and
+    -- drag every one of them in on a single text hit.
+    name_key  TEXT,
+
     -- Validation rules (NULL always allowed; only non-NULL values are checked).
     CONSTRAINT valid_language CHECK (language IN ('en', 'fr')),
     CONSTRAINT valid_source   CHECK (source IN ('CanLII', 'A2AJ')),
@@ -44,6 +61,12 @@ CREATE TABLE IF NOT EXISTS cases (
 );
 
 CREATE INDEX IF NOT EXISTS idx_cases_citation ON cases (citation);
+
+-- Priority 3 groups by name_key on every text search, so this is a hot path.
+-- Partial: NULL means "no family" and is never grouped on, so indexing those
+-- rows would only bloat the index.
+CREATE INDEX IF NOT EXISTS idx_cases_name_key ON cases (name_key)
+    WHERE name_key IS NOT NULL;
 
 -- ===========================================================================
 -- GENERATED METADATA — location tags + AI enrichment we add ourselves.

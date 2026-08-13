@@ -32,6 +32,24 @@ import "../styles/components/search.css";
 // legacy static index only has a positional rank, so fall back to it.
 const idOf = (r: SearchResult) => r.case_id ?? String(r.rank);
 
+// Where the query matched. "Related decision" is the one that genuinely needs
+// explaining: the case is in the results because ANOTHER record of the same
+// litigation matched, so its own text contains none of the search terms and it
+// would otherwise look like a false positive.
+const MATCHED_LABEL: Record<string, string> = {
+  case_name: "case name",
+  parties: "parties",
+  text: "full text",
+  family: "related decision",
+};
+const MATCHED_HELP: Record<string, string> = {
+  case_name: "The query matched this case's name or citation.",
+  parties: "The query matched a party to this case.",
+  text: "The query matched the text of this judgment.",
+  family: "Included because another decision in the same case matched. "
+        + "This record does not contain the search terms itself.",
+};
+
 // The API returns FTS snippets with <mark> around the matched terms. React
 // escapes strings, so render the highlight explicitly rather than showing
 // literal "<mark>" to the user. Only <mark> is honoured — everything else is
@@ -107,6 +125,13 @@ export function Search() {
   // re-runs the last submitted search rather than dragging half-typed text in.
   const [query, setQuery] = useState("");
   const [nameQuery, setNameQuery] = useState("");
+
+  // Which of the three priorities the keyword query searches. All on by default,
+  // which is the same thing the server assumes when the params are absent.
+  const [inName, setInName] = useState(true);
+  const [inParties, setInParties] = useState(true);
+  const [inText, setInText] = useState(true);
+  const noScope = !inName && !inParties && !inText;
   const [appliedQuery, setAppliedQuery] = useState("");
   const [appliedName, setAppliedName] = useState("");
   // When off, each button searches only its own box and clears the other, so
@@ -245,11 +270,15 @@ export function Search() {
       dateFrom: yearOn && yearFrom ? `${yearFrom}-01-01` : undefined,
       dateTo: yearOn && yearTo ? `${yearTo}-12-31` : undefined,
       nameQuery: appliedName.trim() || undefined,
+      inName,
+      inParties,
+      inText,
     }),
     [courtSel, provinceSel,
      courtTypeSel, practiceSel,
      subjectIds, subjectGroups, topicMode,
-     yearOn, yearFrom, yearTo, appliedName],
+     yearOn, yearFrom, yearTo, appliedName,
+     inName, inParties, inText],
   );
 
   // Submitting. With "combine" off, each button commits its own box and blanks
@@ -474,12 +503,36 @@ export function Search() {
                 value={query}
                 onFocus={warmSearch}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchByText()}
+                onKeyDown={(e) => e.key === "Enter" && !noScope && searchByText()}
               />
               {!combine && (
-                <button onClick={searchByText} disabled={loading}>
+                <button onClick={searchByText} disabled={loading || noScope}>
                   {loading ? "Searching…" : "Search by text"}
                 </button>
+              )}
+            </div>
+            {/* Scope, not filters: unticking one removes that priority from the
+                query, so a case reachable only through it disappears rather than
+                being hidden. All three off is not a search, hence the guard. */}
+            <div className="search-scope">
+              {([
+                ["Case name", inName, setInName],
+                ["Parties", inParties, setInParties],
+                ["Full text", inText, setInText],
+              ] as const).map(([label, on, set]) => (
+                <label key={label} className="search-scope-item">
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={(e) => set(e.target.checked)}
+                  />
+                  {label}
+                </label>
+              ))}
+              {noScope && (
+                <span className="search-scope-warning" role="alert">
+                  Pick at least one place to search.
+                </span>
               )}
             </div>
           </div>
@@ -700,6 +753,14 @@ export function Search() {
                 <div className="result-meta">
                   <span>{r.date}</span>
                   {place && <span className="result-place">{place}</span>}
+                  {r.matched && (
+                    <span
+                      className={`result-matched result-matched-${r.matched}`}
+                      title={MATCHED_HELP[r.matched]}
+                    >
+                      {MATCHED_LABEL[r.matched]}
+                    </span>
+                  )}
                   {r.relevance != null && (
                     <span className="result-score" title="Hybrid BM25 + keyword-tag score">
                       score {r.relevance.toFixed(1)}

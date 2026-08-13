@@ -43,6 +43,12 @@ export interface ApiCase {
   mots_cles: string[];
   keyword_ids: string[];
   relevance: number | null;
+  /**
+   * Which priority placed this result. "family" means it was promoted because
+   * another record of the same litigation matched — the case itself contains
+   * none of the query terms, which is why the card has to say so.
+   */
+  matched?: "case_name" | "parties" | "text" | "family" | null;
 }
 
 export interface ApiSearchResponse {
@@ -205,6 +211,13 @@ export function filtersToParams(
   const nameQ = filters.nameQuery?.trim();
   if (nameQ) p.set("name_q", nameQ);
 
+  // Only sent when switched OFF: the server defaults all three to true, so
+  // omitting them keeps the URL short and the default behaviour obvious in the
+  // usage logs (a /search with no in_* param searched everything).
+  if (filters.inName === false) p.set("in_name", "false");
+  if (filters.inParties === false) p.set("in_parties", "false");
+  if (filters.inText === false) p.set("in_text", "false");
+
   if (filters.dateFrom) p.set("date_from", filters.dateFrom);
   if (filters.dateTo) p.set("date_to", filters.dateTo);
 
@@ -239,6 +252,7 @@ function toResult(r: ApiCase): SearchResult {
     language: r.language ?? undefined,
     level: r.level,
     relevance: r.relevance ?? undefined,
+    matched: r.matched ?? undefined,
   };
   return { ...meta, distance: null };
 }

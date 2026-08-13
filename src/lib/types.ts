@@ -27,6 +27,8 @@ export interface CaseMeta {
   language?: string; // 'en' | 'fr'
   level?: "upper" | "lower";
   relevance?: number; // hybrid BM25 + tag-boost score
+  /** Which priority placed this result; "family" = promoted via a sibling record. */
+  matched?: "case_name" | "parties" | "text" | "family";
 }
 
 // Shape of the optional public/data/case_tags.json file (rank → tags).
@@ -84,6 +86,19 @@ export interface Filters {
    * accent-insensitive, so "quebec" finds "Québec".
    */
   nameQuery?: string;
+  /**
+   * Which of the three search priorities the free-text query is matched
+   * against — the checkboxes above the search box. All default to true when
+   * undefined, matching the server.
+   *
+   * These are SCOPE, not display filters: switching one off removes that
+   * priority from the query entirely, so a case reachable only through it
+   * disappears from the results rather than being hidden. All three false is
+   * rejected by the server.
+   */
+  inName?: boolean;
+  inParties?: boolean;
+  inText?: boolean;
 }
 
 export interface SearchResult extends CaseMeta {

@@ -15,7 +15,11 @@ export default defineConfig({
     // Still proxied, so it stays same-origin and CORS never applies.
     proxy: {
       '/api': {
-        target: process.env.DEV_API_TARGET ?? 'http://localhost:8080',
+        // 127.0.0.1, NOT localhost. On macOS `localhost` resolves to ::1 first,
+        // while `uvicorn --host 127.0.0.1` (the documented way to run the
+        // backend) listens on IPv4 only — so the proxy connects to nothing and
+        // every /api call comes back 500 with no hint as to why.
+        target: process.env.DEV_API_TARGET ?? 'http://127.0.0.1:8080',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
       },

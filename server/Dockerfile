@@ -26,4 +26,21 @@ ENV SEARCH_DB=/app/cases.db \
     PYTHONUNBUFFERED=1
 
 # Cloud Run injects $PORT.
-CMD exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1
+#
+# --forwarded-allow-ips IS LOAD-BEARING, not boilerplate. app.py mounts the MCP
+# app at /mcp, and Starlette redirects /mcp -> /mcp/ for any mounted sub-app. It
+# builds that redirect from the request scheme, and uvicorn only trusts
+# X-Forwarded-Proto from peers listed here — the default is 127.0.0.1, but on
+# Cloud Run the proxy is never loopback. Without this the header is ignored, the
+# scheme reads as plain http, and /mcp 307s to an http:// URL. No MCP client will
+# follow an https->http downgrade with a POST body, so a connector pointed at the
+# slash-less URL fails, and Claude misreads the dead endpoint as one needing
+# authentication ("Couldn't register with JICL's sign-in service" — there is no
+# such service; the server is public and needs no OAuth Client ID).
+#
+# '*' is safe ONLY because Cloud Run is the sole ingress and overwrites
+# client-supplied X-Forwarded-* headers. Do not carry this flag to a deployment
+# where the container is reachable directly — there it would let a caller spoof
+# its own scheme and source IP.
+CMD exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 \
+    --proxy-headers --forwarded-allow-ips='*'
