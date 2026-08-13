@@ -21,3 +21,17 @@
  */
 export const FEEDBACK_ENABLED: boolean =
     import.meta.env.VITE_FEEDBACK_ENABLED !== "false";
+
+/**
+ * The MCP connector card on the Dataset page.
+ *
+ * Off in production until the endpoint is actually live. The card publishes a
+ * URL for people to paste into claude.ai, so shipping it before
+ * `mcp_server.asgi_app()` is mounted in server/app.py and deployed would hand
+ * users a connector that fails to connect.
+ *
+ * To ship it: deploy the mounted endpoint, confirm it answers, then drop
+ * VITE_MCP_ENABLED from .env.production.
+ */
+export const MCP_ENABLED: boolean =
+    import.meta.env.VITE_MCP_ENABLED !== "false";
