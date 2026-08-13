@@ -137,7 +137,6 @@ export function Search() {
   // When off, each button searches only its own box and clears the other, so
   // "Search by title" really does mean title only. When on, both boxes narrow
   // one search and either button submits the pair.
-  const [combine, setCombine] = useState(false);
   const [mode, setMode] = useState<SearchMode>("browse");
 
   // Facet filters. None of these carry a match mode: court, province, court
@@ -281,16 +280,20 @@ export function Search() {
      inName, inParties, inText],
   );
 
-  // Submitting. With "combine" off, each button commits its own box and blanks
-  // the other, so the button label is literally true. With it on, both buttons
-  // commit the pair.
+  // Each button commits its own box and blanks the other, so the label is
+  // literally true: "Search by text" searches the text, and nothing else.
+  //
+  // The two boxes are deliberately exclusive rather than ANDed. The server does
+  // support both at once (name_q filters on top of q), but offering it as a
+  // third mode meant two buttons that sometimes did the same thing and a
+  // checkbox to explain when. Narrowing is what the sidebar filters are for.
   const searchByText = () => {
     setAppliedQuery(query);
-    setAppliedName(combine ? nameQuery : "");
+    setAppliedName("");
   };
   const searchByTitle = () => {
     setAppliedName(nameQuery);
-    setAppliedQuery(combine ? query : "");
+    setAppliedQuery("");
   };
 
   async function runSearch() {
@@ -505,11 +508,9 @@ export function Search() {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !noScope && searchByText()}
               />
-              {!combine && (
-                <button onClick={searchByText} disabled={loading || noScope}>
-                  {loading ? "Searching…" : "Search by text"}
-                </button>
-              )}
+              <button onClick={searchByText} disabled={loading || noScope}>
+                {loading ? "Searching…" : "Search by text"}
+              </button>
             </div>
             {/* Scope, not filters: unticking one removes that priority from the
                 query, so a case reachable only through it disappears rather than
@@ -548,31 +549,11 @@ export function Search() {
                 onChange={(e) => setNameQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchByTitle()}
               />
-              {!combine && (
-                <button onClick={searchByTitle} disabled={loading}>
-                  {loading ? "Searching…" : "Search by title"}
-                </button>
-              )}
+              <button onClick={searchByTitle} disabled={loading}>
+                {loading ? "Searching…" : "Search by title"}
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Combining collapses the two per-box buttons into one Search, because
-            with both boxes applied there is only one search to run. */}
-        <div className="search-combine-row">
-          <label className="search-combine">
-            <input
-              type="checkbox"
-              checked={combine}
-              onChange={(e) => setCombine(e.target.checked)}
-            />
-            <span>Combine — narrow one search by keywords <em>and</em> citation</span>
-          </label>
-          {combine && (
-            <button className="search-go" onClick={searchByText} disabled={loading}>
-              {loading ? "Searching…" : "Search"}
-            </button>
-          )}
         </div>
 
         <div className="search-modebar">

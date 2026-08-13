@@ -268,24 +268,6 @@
     color: var(--color-text-secondary);
 }
 
-/* Combine row: the checkbox, plus the single Search button it reveals. */
-.search-combine-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0.6rem 0 1rem;
-}
-.search-combine {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-}
-.search-combine input { flex: 0 0 auto; cursor: pointer; }
-.search-combine-row .search-go { margin-left: auto; }
-
 .search-bar {
     display: flex;
     gap: 0.5rem;
@@ -302,7 +284,6 @@
 }
 
 .search-bar button,
-.search-go,
 .toolbar-actions button {
     padding: 0.5rem 1rem;
     border: none;
@@ -314,12 +295,10 @@
     transition: background 0.2s ease;
 }
 .search-bar button:hover,
-.search-go:hover,
 .toolbar-actions button:hover {
     background: var(--color-turquoise-dark);
 }
 .search-bar button:disabled,
-.search-go:disabled,
 .toolbar-actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
