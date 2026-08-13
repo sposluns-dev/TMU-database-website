@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { FEEDBACK_ENABLED } from "../lib/features.ts";
 
 // Browserbase-style floating capsule nav: logo left, links + filled CTA right.
 // Styled by public/site.css (.site-nav).
@@ -43,11 +44,13 @@ export const Navbar = () => {
                                 FAQ
                             </Link>
                         </li>
-                        <li>
-                            <Link to="/feedback" className={linkClass("/feedback")}>
-                                Feedback
-                            </Link>
-                        </li>
+                        {FEEDBACK_ENABLED && (
+                            <li>
+                                <Link to="/feedback" className={linkClass("/feedback")}>
+                                    Feedback
+                                </Link>
+                            </li>
+                        )}
                     </ul>
                 </div>
             </nav>

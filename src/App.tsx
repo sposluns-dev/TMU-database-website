@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Navbar } from "./components/Navbar.tsx";
 import { Footer } from "./components/Footer.tsx";
 import { Background } from "./components/Background.tsx";
@@ -9,6 +9,7 @@ import { Dataset } from "./components/Dataset.tsx";
 import { About } from "./components/About.tsx";
 import { FAQ } from "./components/FAQ.tsx";
 import { Feedback } from "./components/Feedback.tsx";
+import { FEEDBACK_ENABLED } from "./lib/features.ts";
 
 function HomePage() {
     return (
@@ -33,7 +34,16 @@ function App() {
                                 <Route path="/search" element={<Search />} />
                                 <Route path="/about" element={<About />} />
                                 <Route path="/faq" element={<FAQ />} />
-                                <Route path="/feedback" element={<Feedback />} />
+                                {/* Off in production (see lib/features.ts). The route
+                                    still exists but redirects, so an old link or a
+                                    bookmark lands on the home page rather than a blank
+                                    one. */}
+                                <Route
+                                    path="/feedback"
+                                    element={
+                                        FEEDBACK_ENABLED ? <Feedback /> : <Navigate to="/" replace />
+                                    }
+                                />
                             </Routes>
                         </div>
                     </main>
