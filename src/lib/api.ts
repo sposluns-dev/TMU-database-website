@@ -47,8 +47,14 @@ export interface ApiCase {
 
 export interface ApiSearchResponse {
   query: string;
-  mode: "browse" | "keyword";
-  expanded_to: { keyword_id: string; en: string; fr: string | null }[];
+  // "search" and "stopwords" come from the three-priority backend; "keyword" is
+  // what the older ranking returned. Nothing reads this — search.ts derives its
+  // own mode from whether the query is non-empty — but the union should not lie.
+  mode: "browse" | "keyword" | "search" | "stopwords";
+  // Optional on purpose: these are read through `?? []` in apiSearch because a
+  // backend that omits one must degrade, not crash the page.
+  expanded_to?: { keyword_id: string; en: string; fr: string | null }[];
+  priorities_built?: string[];
   total: number;
   limit: number;
   offset: number;
@@ -248,10 +254,16 @@ export async function apiSearch(
   if (!params) return { results: [], total: 0, expandedTo: [] };
 
   const data = await get<ApiSearchResponse>("/search", params);
+  // Defensive `?? []`: a missing optional field must not take the whole search
+  // page down. When a rewrite of the backend briefly stopped returning
+  // `expanded_to`, this line threw "Cannot read properties of undefined
+  // (reading 'map')" and the UI reported the service as unreachable — which sent
+  // the debugging in entirely the wrong direction. `results` and `total` are the
+  // only fields a response is genuinely useless without.
   return {
-    results: data.results.map(toResult),
-    total: data.total,
-    expandedTo: data.expanded_to.map((e) => e.en),
+    results: (data.results ?? []).map(toResult),
+    total: data.total ?? 0,
+    expandedTo: (data.expanded_to ?? []).map((e) => e.en),
   };
 }
 
