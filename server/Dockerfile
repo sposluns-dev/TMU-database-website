@@ -13,6 +13,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY cases.db .
 COPY keyword-vocab.csv .
 COPY app.py .
+# app.py imports this to mount /mcp. The import is guarded, so OMITTING IT FAILS
+# SILENTLY: the REST API still serves and /health still returns 200, but /mcp
+# 404s and the only clue is a one-line note in the Cloud Run logs. Copied by name
+# because this Dockerfile copies files individually (see the layer note above),
+# so a new module beside app.py is invisible to the image unless listed here.
+COPY mcp_server.py .
 
 ENV SEARCH_DB=/app/cases.db \
     SEARCH_VOCAB=/app/keyword-vocab.csv \
