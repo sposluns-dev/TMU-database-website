@@ -1,0 +1,123 @@
+﻿id,canonical,canonical_fr,tier,area,synonyms
+K001,Administrative law,Droit administratif,1,Practice Area (Tier 1),admin law | droit administratif
+K002,Civil litigation,Litige civil,1,Practice Area (Tier 1),civil suit | lawsuit | tort | civil claim
+K003,Constitutional law,Droit constitutionnel,1,Practice Area (Tier 1),constitutional | constitutionality | droit constitutionnel
+K004,Criminal law,Droit criminel,1,Practice Area (Tier 1),criminal | penal law | droit criminel | droit pénal
+K005,Education law,Droit de l'éducation,1,Practice Area (Tier 1),education | school law | droit de l'éducation
+K006,Family law,Droit de la famille,1,Practice Area (Tier 1),family | matrimonial | droit de la famille
+K007,Human rights,Droits de la personne,1,Practice Area (Tier 1),human rights law | civil rights | droits de la personne
+K008,Immigration law,Droit de l'immigration,1,Practice Area (Tier 1),immigration | refugee law | droit de l'immigration
+K009,Labour and employment law,Droit du travail et de l'emploi,1,Practice Area (Tier 1),employment law | labour law | employment | droit du travail
+K010,Doré/Loyola framework,cadre Doré/Loyola,2,Administrative law,proportionate balancing | Doré | Loyola
+K011,judicial review,contrôle judiciaire,2,Administrative law,application for judicial review | contrôle judiciaire
+K012,procedural fairness,équité procédurale,2,Administrative law,natural justice | duty of fairness | équité procédurale | justice naturelle
+K013,professional discipline,discipline professionnelle,2,Administrative law,law society | barreau | disciplinary committee | professional regulation | ordre professionnel
+K014,standard of review,norme de contrôle,2,Administrative law,reasonableness | correctness | norme de contrôle
+K015,defamation,diffamation,2,Civil liability / defamation,libel | slander | injury to reputation | diffamation | defamatory | libellous
+K016,fair comment,commentaire loyal,2,Civil liability / defamation,honest comment | commentaire loyal
+K017,group defamation,diffamation collective,2,Civil liability / defamation,collectivity | collective defamation | diffamation collective
+K018,qualified privilege,immunité relative,2,Civil liability / defamation,immunité relative
+K019,responsible communication,communication responsable,2,Civil liability / defamation,responsible journalism | communication responsable
+K020,class action,action collective,2,Civil procedure / remedies / evidence,collective recovery | recours collectif | action collective | class proceeding
+K021,interlocutory injunction,injonction interlocutoire,2,Civil procedure / remedies / evidence,interim injunction | injunction | injunctive relief | injonction interlocutoire
+K022,restitution,restitution,2,Civil procedure / remedies / evidence,reparations | property restitution
+K023,equality rights,droits à l'égalité,2,Constitutional law / Charter,equality before the law | droits à l'égalité
+K024,freedom of expression,liberté d'expression,2,Constitutional law / Charter,freedom of speech | free speech | free expression | liberté d'expression
+K025,freedom of religion,liberté de religion,2,Constitutional law / Charter,religious freedom | freedom of conscience and religion | liberté de religion
+K026,halacha,halakha,2,Constitutional law / Charter,halakha | halachic | halakhic | Jewish law | Torah | Talmud | talmudic | loi juive
+K027,Jewish holidays,fêtes juives,2,Constitutional law / Charter,Jewish holiday | Yom Kippur | Rosh Hashanah | Passover | Pesach | Hanukkah | Chanukah | Purim | Shavuot | Sukkot | Simchat Torah | High Holidays | fêtes juives
+K028,kosher / dietary law,cacherout / lois alimentaires,2,Constitutional law / Charter,kosher | kashrut | dietary law | cacherout | casher
+K029,notwithstanding clause,disposition de dérogation,2,Constitutional law / Charter,section 33 | s. 33 | clause dérogatoire | clause nonobstant
+K030,reasonable limits (s. 1),limites raisonnables (art. 1),2,Constitutional law / Charter,Oakes test | justified limit | section 1 | limites raisonnables | article premier
+K031,religious accommodation,accommodement religieux,2,Constitutional law / Charter,reasonable accommodation | duty to accommodate | accommodement raisonnable | undue hardship | contrainte excessive
+K032,religious symbols / dress,symboles religieux / tenue religieuse,2,Constitutional law / Charter,religious symbol | religious dress | kirpan | hijab | niqab | kippah | yarmulke | turban | veil | voile | headscarf | foulard | menorah | symboles religieux
+K033,shabbat,chabbat,2,Constitutional law / Charter,sabbath | sabbatarian | sabbat
+K034,sincerity of belief,sincérité de la croyance,2,Constitutional law / Charter,sincere religious belief | sincerely held belief | nexus with religion | croyance sincère
+K035,sukkah,souccah,2,Constitutional law / Charter,succah
+K036,mischief,méfait,2,Criminal law,mischief to religious property | property damage | méfait
+K037,terrorism,terrorisme,2,Criminal law,terrorist | terrorists | terrorist entity | anti-terrorism | terrorisme
+K038,vandalism,vandalisme,2,Criminal law,vandalized | vandalised | vandals | desecration | desecrated | defacing | profanation
+K039,war crimes,crimes de guerre,2,Criminal law,war crime | crimes against humanity | war criminal | war criminals | crimes contre l'humanité
+K040,academic freedom,liberté universitaire,2,Education,tenure | liberté académique
+K041,campus / university,campus / université,2,Education,post-secondary | student union | student society | university | universities | universités
+K042,code of conduct,code de conduite,2,Education,professional standards | conduct policy | code de conduite
+K043,denominational schools,écoles confessionnelles,2,Education,denominational school | separate schools | separate school | Catholic schools | faith-based schools | yeshiva | écoles confessionnelles | école confessionnelle
+K044,school board,conseil scolaire,2,Education,board of education | school district | commission scolaire | conseil scolaire
+K045,student discipline,discipline des élèves,2,Education,expulsion | expelled | suspension | suspended | discipline scolaire
+K046,teacher misconduct,inconduite d'un enseignant,2,Education,professional misconduct | conduct unbecoming | faute professionnelle
+K047,best interests of the child,intérêt supérieur de l'enfant,2,Family law,best interests | intérêt de l'enfant
+K048,custody / access,garde / accès,2,Family law,parenting time | garde | droit de visite
+K049,marriage / cohabitation agreement,contrat de mariage / convention de vie commune,2,Family law,marriage contract | separation agreement | cohabitation agreement | prenuptial agreement | ketubah | contrat de mariage
+K050,parental support,pension alimentaire pour enfants,2,Family law,child support | support obligation | pension alimentaire
+K051,religious divorce (get),divorce religieux (get),2,Family law,gett | Jewish divorce | Jewish religious divorce | agunah | get refusal | obtain a get | grant a get | provide a get | refuse a get | withhold a get | beth din | beit din
+K052,religious upbringing,éducation religieuse,2,Family law,religious instruction | religious education of children | bar mitzvah | bat mitzvah | éducation religieuse
+K053,spousal support,pension alimentaire pour conjoint,2,Family law,alimony | maintenance | pension alimentaire pour époux
+K054,wills / estates,testaments / successions,2,Family law,testamentary | estate trustee | probate | testamentary condition | public policy void bequest | executor | testator | estate litigation | succession
+K055,advocating genocide,encouragement au génocide,2,Hate speech / antisemitism,genocide | encouragement au génocide
+K056,anti-Zionism,antisionisme,2,Hate speech / antisemitism,Zionism | Zionist | Zionists | sioniste | anti-Zionist | anti-Israel | antisionisme
+K057,antisemitic slurs,insultes antisémites,2,Hate speech / antisemitism,kike | hymie | dirty Jew | antisemitic epithet | racial epithet | ethnic slur | racial slur
+K058,antisemitism,antisémitisme,2,Hate speech / antisemitism,anti-Semitism | anti-Semitic | anti-Jewish hatred | Jew-hatred | antisemitic | antisémite | anti-Jewish | antisemites | antisémites | haine des juifs
+K059,boycott,boycottage,2,Hate speech / antisemitism,"BDS | boycott, divestment and sanctions | boycottage | boycotting | boycotted"
+K060,hate motivation,motivation haineuse,2,Hate speech / antisemitism,hate-motivated | hate crime | s. 718.2(a)(i) | crime haineux
+K061,hate speech,discours haineux,2,Hate speech / antisemitism,hate propaganda | hate literature | hate messages | hate-mongering | hateful expression | discours haineux
+K062,Holocaust denial,négation de l'Holocauste,2,Hate speech / antisemitism,Holocaust minimization | Holocaust denier | Holohoax | genocide denial | négationnisme | négationniste
+K063,online hate / social media,haine en ligne / médias sociaux,2,Hate speech / antisemitism,social media | Facebook | Twitter | YouTube | online | médias sociaux
+K064,public incitement of hatred,incitation publique à la haine,2,Hate speech / antisemitism,s. 319(1) | incitement of hatred
+K065,racism,racisme,2,Hate speech / antisemitism,racist | racists | raciste | racial discrimination | racial hatred | racisme
+K066,white supremacism,suprémacisme blanc,2,Hate speech / antisemitism,white supremacy | white supremacist | white supremacists | white nationalist | neo-Nazi | neo-Nazis | Nazi | Nazis
+K067,wilful promotion of hatred,fomentation volontaire de la haine,2,Hate speech / antisemitism,promoting hatred | willful promotion of hatred | fomenter la haine
+K068,bona fide occupational requirement,exigence professionnelle justifiée,2,Human rights (statutory),BFOR | bona fide occupational | exigence professionnelle justifiée
+K069,discrimination,discrimination,2,Human rights (statutory),differential treatment | adverse effect discrimination | discriminatory | discriminated
+K070,discriminatory messages,messages discriminatoires,2,Human rights (statutory),discriminatory practice | acte discriminatoire
+K071,human dignity,dignité humaine,2,Human rights (statutory),dignity | dignity of the person | dignité
+K072,human rights tribunal,tribunal des droits de la personne,2,Human rights (statutory),CHRT | human rights commission | HRTO | tribunal des droits de la personne | commission des droits de la personne
+K073,prima facie discrimination,preuve prima facie de discrimination,2,Human rights (statutory),prima facie case of discrimination
+K074,systemic discrimination,discrimination systémique,2,Human rights (statutory),institutional discrimination
+K075,convention refugee,réfugié au sens de la Convention,2,Immigration & refugee,refugee status
+K076,deportation,expulsion,2,Immigration & refugee,removal order | deported | renvoi
+K077,inadmissibility,interdiction de territoire,2,Immigration & refugee,inadmissible
+K078,refugee protection,protection des réfugiés,2,Immigration & refugee,refugee claim | asylum | demande d'asile | réfugié | asile
+K079,persecution,persécution,2,Immigration & refugee,persecuted | fear of persecution | well-founded fear of persecution | persécution | crainte de persécution
+K080,state protection,protection de l'État,2,Immigration & refugee,availability of state protection
+K081,stay of removal,sursis au renvoi,2,Immigration & refugee,stay of deportation
+K082,employment discrimination,discrimination en milieu de travail,2,Labour and employment,Workplace discrimination | Job discrimination
+K083,harassment,harcèlement,2,Labour and employment,hostile work environment | workplace harassment | harassed | harassing | harcèlement
+K084,labour arbitration,arbitrage de griefs,2,Labour and employment,grievance | grievances | collective agreement | arbitration | arbitrator | grief
+K085,wrongful dismissal,congédiement injustifié,2,Labour and employment,termination | terminated | fired | dismissed | dismissal | constructive dismissal | congédiement
+K086,co-ownership,copropriété,2,Property,declaration of co-ownership | condominium | strata | copropriété
+K087,protest / demonstration,manifestation,2,Protest / public order,protest | protests | protesters | demonstration | demonstrations | picketing | encampment | manifestation
+K088,Holocaust,Holocauste,3,Entities — Events,Shoah
+K089,B'nai Brith / League for Human Rights,B'nai Brith / Ligue des droits de la personne,3,Entities — Groups,B'nai Brith | League for Human Rights
+K090,Canadian Jewish Congress,Congrès juif canadien,3,Entities — Groups,CJC | Congrès juif canadien
+K091,CIJA,CIJA,3,Entities — Groups,Centre for Israel and Jewish Affairs | Centre consultatif des relations juives et israéliennes
+K092,Hamas / Hezbollah,Hamas / Hezbollah,3,Entities — Groups,Hamas | Hezbollah | Hizbollah | Hezbullah
+K093,Jewish,Juif,3,Entities — Groups,Jew | Jews | Jewish people | Judaism | juive | juifs | juives | judaïsme
+K094,Jewish community,communauté juive,3,Entities — Groups,Jewish communities | communautés juives | Jewish congregation
+K095,Jewish family,famille juive,3,Entities — Groups,Jewish families | familles juives
+K096,Jewish students,étudiants juifs,3,Entities — Groups,Jewish student | Jewish pupils | étudiant juif | élèves juifs
+K097,Orthodox / Hasidic community,communauté orthodoxe / hassidique,3,Entities — Groups,Orthodox Jewish | ultra-Orthodox | haredi | Hasidic | Chassidic | Hassidic | Chabad | Lubavitch | hassidique
+K098,rabbi,rabbin,3,Entities — Groups,rabbis | rabbins | rebbe | rabbinical | rabbinique
+K099,Simon Wiesenthal Centre,Centre Simon Wiesenthal,3,Entities — Groups,Wiesenthal | Simon Wiesenthal Center
+K100,Immigration and Refugee Board,Commission de l'immigration et du statut de réfugié,3,Entities — Institutions,IRB | Refugee Protection Division | Refugee Appeal Division | CISR
+K101,cemetery,cimetière,3,Entities — Places,cemeteries | burial | interment
+K102,Gaza,Gaza,3,Entities — Places,Gaza Strip | bande de Gaza
+K103,Israel,Israël,3,Entities — Places,State of Israel | Israeli | Israelis | israélien
+K104,Palestine,Palestine,3,Entities — Places,Palestinian | Palestinians | Palestinian territories | palestinien | territoires palestiniens
+K105,synagogue,synagogue,3,Entities — Places,synagogues | shul
+K106,West Bank,Cisjordanie,3,Entities — Places,Judea and Samaria | Cisjordanie
+K107,Canadian Charter of Rights and Freedoms,Charte canadienne des droits et libertés,3,Entities — Statutes,the Charter | Canadian Charter | Charter of Rights | Charte canadienne | Charte des droits et libertés
+K108,Canadian Human Rights Act,Loi canadienne sur les droits de la personne,3,Entities — Statutes,CHRA | LCDP
+K109,Charter s. 15,art. 15 de la Charte,3,Entities — Statutes,s. 15 of the Charter | section 15 of the Charter | article 15 de la Charte
+K110,Charter s. 2(a),art. 2a) de la Charte,3,Entities — Statutes,s. 2(a) | section 2(a) | article 2a) de la Charte
+K111,Charter s. 2(b),art. 2b) de la Charte,3,Entities — Statutes,s. 2(b) | section 2(b) | article 2b) de la Charte
+K112,Charter s. 7,art. 7 de la Charte,3,Entities — Statutes,s. 7 of the Charter | section 7 of the Charter | article 7 de la Charte
+K113,CHRA s. 13,art. 13 de la LCDP,3,Entities — Statutes,s. 13 | section 13 | Canadian Human Rights Act s. 13 | article 13
+K114,Criminal Code s. 318,art. 318 du Code criminel,3,Entities — Statutes,s. 318 | section 318 | article 318
+K115,Criminal Code s. 319(2),art. 319(2) du Code criminel,3,Entities — Statutes,s. 319(2) | section 319(2) | article 319(2)
+K116,Criminal Code s. 430,art. 430 du Code criminel,3,Entities — Statutes,s. 430 | section 430 | article 430
+K117,Divorce Act,Loi sur le divorce,3,Entities — Statutes,
+K118,Education Act,Loi sur l'éducation,3,Entities — Statutes,
+K119,Human Rights Code,Code des droits de la personne,3,Entities — Statutes,Ontario Human Rights Code
+K120,Quebec Charter,Charte québécoise,3,Entities — Statutes,Charter of Human Rights and Freedoms | Charte des droits et libertés de la personne
+K121,s. 27 multiculturalism,art. 27 (multiculturalisme),3,Entities — Statutes,section 27 | multicultural heritage | patrimoine multiculturel
+K122,swastika,croix gammée,3,Entities — Symbols,swastikas | svastika

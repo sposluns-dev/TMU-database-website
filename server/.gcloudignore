@@ -1,0 +1,8 @@
+# Controls what `gcloud run deploy --source .` uploads to Cloud Build.
+# Separate from .dockerignore (which controls what goes INTO the image).
+# Without this file, and with no git repo here, gcloud uploads everything.
+
+.venv/
+__pycache__/
+*.pyc
+.DS_Store

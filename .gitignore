@@ -1,3 +1,69 @@
+# ---------------------------------------------------------------------------
+# Frontend
+# ---------------------------------------------------------------------------
 node_modules
 dist
+
+# ---------------------------------------------------------------------------
+# SECRETS
+#
+# canlii_key.txt now lives at the WORKSPACE root, one level ABOVE this repo, so
+# it cannot be committed here even by accident. The pattern stays as a guard in
+# case a copy is ever dropped in.
+# ---------------------------------------------------------------------------
+canlii_key.txt
+*anthropic-API-key.txt
+*.key
+.env
+
+# ---------------------------------------------------------------------------
+# BUILD ARTIFACT — the database itself
+#
+# db/cases.db is ~200 MB and is regenerated from cases-JSON/ by
+# scripts/build_db.py in about 5 seconds. It carries no information the tracked
+# sources do not, and GitHub rejects any single file over 100 MB outright, so it
+# is never committed. db/schema.sql IS tracked — that is hand-written source.
+#
+# To publish a specific build (thesis submission, a data freeze), attach it to a
+# tagged GitHub Release rather than committing it:
+#     gh release create v1.0 db/cases.db
+# ---------------------------------------------------------------------------
+db/cases.db
+db/cases.db-wal
+db/cases.db-shm
+db/*.bak
+db/*.bak-*
+
+# ---------------------------------------------------------------------------
+# PYTHON — the backend and pipeline now live in this repo
+# ---------------------------------------------------------------------------
+server/.venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ---------------------------------------------------------------------------
+# EDITOR / OS
+# ---------------------------------------------------------------------------
 .DS_Store
+
+# ---------------------------------------------------------------------------
+# WORKING FILES — snapshots taken before risky edits.
+#
+# The corpus files are large (case_metadata.jsonl is ~7 MB) and git stores a
+# whole new blob per revision, not a delta, so a stray .bak costs its full size
+# in history every time it changes.
+# ---------------------------------------------------------------------------
+*.bak
+*.bak-*
+*.pre-null
+*.wip-bak
+cases-JSON/*.jsonl.bak*
+
+# ---------------------------------------------------------------------------
+# GENERATED REPORTS — rewritten on every run of the audit scripts
+# ---------------------------------------------------------------------------
+cases-JSON/parties-verification-report.txt
+cases-JSON/duplicates-report.txt
+cases-JSON/parties-anonymisation-review.txt

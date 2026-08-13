@@ -3,6 +3,24 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # The corpus, the pipeline and the Cloud Run backend now live in this repo
+    # alongside the frontend, but none of them affect the built site — Vite only
+    # publishes dist/ from src/. Without this filter, correcting a single case
+    # JSON or committing a parties-file pass would run npm ci + a full Pages
+    # deploy for a bundle that cannot have changed.
+    #
+    # server/ is listed because it deploys to Cloud Run via server/deploy.sh, on
+    # its own schedule, and has nothing to do with Pages.
+    #
+    # NOTE: paths-ignore only skips the workflow. It does not stop these files
+    # being cloned by actions/checkout, so CI still pays to fetch the ~148 MB of
+    # corpus on the runs that do fire.
+    paths-ignore:
+      - 'cases-JSON/**'
+      - 'scripts/**'
+      - 'server/**'
+      - 'db/**'
+      - 'sql/**'
   workflow_dispatch:
 
 permissions:

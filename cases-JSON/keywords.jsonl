@@ -1,0 +1,122 @@
+{"keyword_id": "K001", "canonical_en": "Administrative law", "canonical_fr": "Droit administratif", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K002", "canonical_en": "Civil litigation", "canonical_fr": "Litige civil", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K003", "canonical_en": "Constitutional law", "canonical_fr": "Droit constitutionnel", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K004", "canonical_en": "Criminal law", "canonical_fr": "Droit criminel", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K005", "canonical_en": "Education law", "canonical_fr": "Droit de l'éducation", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K006", "canonical_en": "Family law", "canonical_fr": "Droit de la famille", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K007", "canonical_en": "Human rights", "canonical_fr": "Droits de la personne", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K008", "canonical_en": "Immigration law", "canonical_fr": "Droit de l'immigration", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K009", "canonical_en": "Labour and employment law", "canonical_fr": "Droit du travail et de l'emploi", "tier": 1, "area": "Practice Area (Tier 1)"}
+{"keyword_id": "K010", "canonical_en": "Doré/Loyola framework", "canonical_fr": "cadre Doré/Loyola", "tier": 2, "area": "Administrative law"}
+{"keyword_id": "K011", "canonical_en": "judicial review", "canonical_fr": "contrôle judiciaire", "tier": 2, "area": "Administrative law"}
+{"keyword_id": "K012", "canonical_en": "procedural fairness", "canonical_fr": "équité procédurale", "tier": 2, "area": "Administrative law"}
+{"keyword_id": "K013", "canonical_en": "professional discipline", "canonical_fr": "discipline professionnelle", "tier": 2, "area": "Administrative law"}
+{"keyword_id": "K014", "canonical_en": "standard of review", "canonical_fr": "norme de contrôle", "tier": 2, "area": "Administrative law"}
+{"keyword_id": "K015", "canonical_en": "defamation", "canonical_fr": "diffamation", "tier": 2, "area": "Civil liability / defamation"}
+{"keyword_id": "K016", "canonical_en": "fair comment", "canonical_fr": "commentaire loyal", "tier": 2, "area": "Civil liability / defamation"}
+{"keyword_id": "K017", "canonical_en": "group defamation", "canonical_fr": "diffamation collective", "tier": 2, "area": "Civil liability / defamation"}
+{"keyword_id": "K018", "canonical_en": "qualified privilege", "canonical_fr": "immunité relative", "tier": 2, "area": "Civil liability / defamation"}
+{"keyword_id": "K019", "canonical_en": "responsible communication", "canonical_fr": "communication responsable", "tier": 2, "area": "Civil liability / defamation"}
+{"keyword_id": "K020", "canonical_en": "class action", "canonical_fr": "action collective", "tier": 2, "area": "Civil procedure / remedies / evidence"}
+{"keyword_id": "K021", "canonical_en": "interlocutory injunction", "canonical_fr": "injonction interlocutoire", "tier": 2, "area": "Civil procedure / remedies / evidence"}
+{"keyword_id": "K022", "canonical_en": "restitution", "canonical_fr": "restitution", "tier": 2, "area": "Civil procedure / remedies / evidence"}
+{"keyword_id": "K023", "canonical_en": "equality rights", "canonical_fr": "droits à l'égalité", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K024", "canonical_en": "freedom of expression", "canonical_fr": "liberté d'expression", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K025", "canonical_en": "freedom of religion", "canonical_fr": "liberté de religion", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K026", "canonical_en": "halacha", "canonical_fr": "halakha", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K027", "canonical_en": "Jewish holidays", "canonical_fr": "fêtes juives", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K028", "canonical_en": "kosher / dietary law", "canonical_fr": "cacherout / lois alimentaires", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K029", "canonical_en": "notwithstanding clause", "canonical_fr": "disposition de dérogation", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K030", "canonical_en": "reasonable limits (s. 1)", "canonical_fr": "limites raisonnables (art. 1)", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K031", "canonical_en": "religious accommodation", "canonical_fr": "accommodement religieux", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K032", "canonical_en": "religious symbols / dress", "canonical_fr": "symboles religieux / tenue religieuse", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K033", "canonical_en": "shabbat", "canonical_fr": "chabbat", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K034", "canonical_en": "sincerity of belief", "canonical_fr": "sincérité de la croyance", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K035", "canonical_en": "sukkah", "canonical_fr": "souccah", "tier": 2, "area": "Constitutional law / Charter"}
+{"keyword_id": "K036", "canonical_en": "mischief", "canonical_fr": "méfait", "tier": 2, "area": "Criminal law"}
+{"keyword_id": "K037", "canonical_en": "terrorism", "canonical_fr": "terrorisme", "tier": 2, "area": "Criminal law"}
+{"keyword_id": "K038", "canonical_en": "vandalism", "canonical_fr": "vandalisme", "tier": 2, "area": "Criminal law"}
+{"keyword_id": "K039", "canonical_en": "war crimes", "canonical_fr": "crimes de guerre", "tier": 2, "area": "Criminal law"}
+{"keyword_id": "K040", "canonical_en": "academic freedom", "canonical_fr": "liberté universitaire", "tier": 2, "area": "Education"}
+{"keyword_id": "K041", "canonical_en": "campus / university", "canonical_fr": "campus / université", "tier": 2, "area": "Education"}
+{"keyword_id": "K042", "canonical_en": "code of conduct", "canonical_fr": "code de conduite", "tier": 2, "area": "Education"}
+{"keyword_id": "K043", "canonical_en": "denominational schools", "canonical_fr": "écoles confessionnelles", "tier": 2, "area": "Education"}
+{"keyword_id": "K044", "canonical_en": "school board", "canonical_fr": "conseil scolaire", "tier": 2, "area": "Education"}
+{"keyword_id": "K045", "canonical_en": "student discipline", "canonical_fr": "discipline des élèves", "tier": 2, "area": "Education"}
+{"keyword_id": "K046", "canonical_en": "teacher misconduct", "canonical_fr": "inconduite d'un enseignant", "tier": 2, "area": "Education"}
+{"keyword_id": "K047", "canonical_en": "best interests of the child", "canonical_fr": "intérêt supérieur de l'enfant", "tier": 2, "area": "Family law"}
+{"keyword_id": "K048", "canonical_en": "custody / access", "canonical_fr": "garde / accès", "tier": 2, "area": "Family law"}
+{"keyword_id": "K049", "canonical_en": "marriage / cohabitation agreement", "canonical_fr": "contrat de mariage / convention de vie commune", "tier": 2, "area": "Family law"}
+{"keyword_id": "K050", "canonical_en": "parental support", "canonical_fr": "pension alimentaire pour enfants", "tier": 2, "area": "Family law"}
+{"keyword_id": "K051", "canonical_en": "religious divorce (get)", "canonical_fr": "divorce religieux (get)", "tier": 2, "area": "Family law"}
+{"keyword_id": "K052", "canonical_en": "religious upbringing", "canonical_fr": "éducation religieuse", "tier": 2, "area": "Family law"}
+{"keyword_id": "K053", "canonical_en": "spousal support", "canonical_fr": "pension alimentaire pour conjoint", "tier": 2, "area": "Family law"}
+{"keyword_id": "K054", "canonical_en": "wills / estates", "canonical_fr": "testaments / successions", "tier": 2, "area": "Family law"}
+{"keyword_id": "K055", "canonical_en": "advocating genocide", "canonical_fr": "encouragement au génocide", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K056", "canonical_en": "anti-Zionism", "canonical_fr": "antisionisme", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K057", "canonical_en": "antisemitic slurs", "canonical_fr": "insultes antisémites", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K058", "canonical_en": "antisemitism", "canonical_fr": "antisémitisme", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K059", "canonical_en": "boycott", "canonical_fr": "boycottage", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K060", "canonical_en": "hate motivation", "canonical_fr": "motivation haineuse", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K061", "canonical_en": "hate speech", "canonical_fr": "discours haineux", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K062", "canonical_en": "Holocaust denial", "canonical_fr": "négation de l'Holocauste", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K063", "canonical_en": "online hate / social media", "canonical_fr": "haine en ligne / médias sociaux", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K064", "canonical_en": "public incitement of hatred", "canonical_fr": "incitation publique à la haine", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K065", "canonical_en": "racism", "canonical_fr": "racisme", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K066", "canonical_en": "white supremacism", "canonical_fr": "suprémacisme blanc", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K067", "canonical_en": "wilful promotion of hatred", "canonical_fr": "fomentation volontaire de la haine", "tier": 2, "area": "Hate speech / antisemitism"}
+{"keyword_id": "K068", "canonical_en": "bona fide occupational requirement", "canonical_fr": "exigence professionnelle justifiée", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K069", "canonical_en": "discrimination", "canonical_fr": "discrimination", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K070", "canonical_en": "discriminatory messages", "canonical_fr": "messages discriminatoires", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K071", "canonical_en": "human dignity", "canonical_fr": "dignité humaine", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K072", "canonical_en": "human rights tribunal", "canonical_fr": "tribunal des droits de la personne", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K073", "canonical_en": "prima facie discrimination", "canonical_fr": "preuve prima facie de discrimination", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K074", "canonical_en": "systemic discrimination", "canonical_fr": "discrimination systémique", "tier": 2, "area": "Human rights (statutory)"}
+{"keyword_id": "K075", "canonical_en": "convention refugee", "canonical_fr": "réfugié au sens de la Convention", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K076", "canonical_en": "deportation", "canonical_fr": "expulsion", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K077", "canonical_en": "inadmissibility", "canonical_fr": "interdiction de territoire", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K078", "canonical_en": "refugee protection", "canonical_fr": "protection des réfugiés", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K079", "canonical_en": "persecution", "canonical_fr": "persécution", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K080", "canonical_en": "state protection", "canonical_fr": "protection de l'État", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K081", "canonical_en": "stay of removal", "canonical_fr": "sursis au renvoi", "tier": 2, "area": "Immigration & refugee"}
+{"keyword_id": "K082", "canonical_en": "employment discrimination", "canonical_fr": "discrimination en milieu de travail", "tier": 2, "area": "Labour and employment"}
+{"keyword_id": "K083", "canonical_en": "harassment", "canonical_fr": "harcèlement", "tier": 2, "area": "Labour and employment"}
+{"keyword_id": "K084", "canonical_en": "labour arbitration", "canonical_fr": "arbitrage de griefs", "tier": 2, "area": "Labour and employment"}
+{"keyword_id": "K085", "canonical_en": "wrongful dismissal", "canonical_fr": "congédiement injustifié", "tier": 2, "area": "Labour and employment"}
+{"keyword_id": "K086", "canonical_en": "co-ownership", "canonical_fr": "copropriété", "tier": 2, "area": "Property"}
+{"keyword_id": "K087", "canonical_en": "protest / demonstration", "canonical_fr": "manifestation", "tier": 2, "area": "Protest / public order"}
+{"keyword_id": "K088", "canonical_en": "Holocaust", "canonical_fr": "Holocauste", "tier": 3, "area": "Entities — Events"}
+{"keyword_id": "K089", "canonical_en": "B'nai Brith / League for Human Rights", "canonical_fr": "B'nai Brith / Ligue des droits de la personne", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K090", "canonical_en": "Canadian Jewish Congress", "canonical_fr": "Congrès juif canadien", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K091", "canonical_en": "CIJA", "canonical_fr": "CIJA", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K092", "canonical_en": "Hamas / Hezbollah", "canonical_fr": "Hamas / Hezbollah", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K093", "canonical_en": "Jewish", "canonical_fr": "Juif", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K094", "canonical_en": "Jewish community", "canonical_fr": "communauté juive", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K095", "canonical_en": "Jewish family", "canonical_fr": "famille juive", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K096", "canonical_en": "Jewish students", "canonical_fr": "étudiants juifs", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K097", "canonical_en": "Orthodox / Hasidic community", "canonical_fr": "communauté orthodoxe / hassidique", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K098", "canonical_en": "rabbi", "canonical_fr": "rabbin", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K099", "canonical_en": "Simon Wiesenthal Centre", "canonical_fr": "Centre Simon Wiesenthal", "tier": 3, "area": "Entities — Groups"}
+{"keyword_id": "K100", "canonical_en": "Immigration and Refugee Board", "canonical_fr": "Commission de l'immigration et du statut de réfugié", "tier": 3, "area": "Entities — Institutions"}
+{"keyword_id": "K101", "canonical_en": "cemetery", "canonical_fr": "cimetière", "tier": 3, "area": "Entities — Places"}
+{"keyword_id": "K102", "canonical_en": "Gaza", "canonical_fr": "Gaza", "tier": 3, "area": "Entities — Places"}
+{"keyword_id": "K103", "canonical_en": "Israel", "canonical_fr": "Israël", "tier": 3, "area": "Entities — Places"}
+{"keyword_id": "K104", "canonical_en": "Palestine", "canonical_fr": "Palestine", "tier": 3, "area": "Entities — Places"}
+{"keyword_id": "K105", "canonical_en": "synagogue", "canonical_fr": "synagogue", "tier": 3, "area": "Entities — Places"}
+{"keyword_id": "K106", "canonical_en": "West Bank", "canonical_fr": "Cisjordanie", "tier": 3, "area": "Entities — Places"}
+{"keyword_id": "K107", "canonical_en": "Canadian Charter of Rights and Freedoms", "canonical_fr": "Charte canadienne des droits et libertés", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K108", "canonical_en": "Canadian Human Rights Act", "canonical_fr": "Loi canadienne sur les droits de la personne", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K109", "canonical_en": "Charter s. 15", "canonical_fr": "art. 15 de la Charte", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K110", "canonical_en": "Charter s. 2(a)", "canonical_fr": "art. 2a) de la Charte", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K111", "canonical_en": "Charter s. 2(b)", "canonical_fr": "art. 2b) de la Charte", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K112", "canonical_en": "Charter s. 7", "canonical_fr": "art. 7 de la Charte", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K113", "canonical_en": "CHRA s. 13", "canonical_fr": "art. 13 de la LCDP", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K114", "canonical_en": "Criminal Code s. 318", "canonical_fr": "art. 318 du Code criminel", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K115", "canonical_en": "Criminal Code s. 319(2)", "canonical_fr": "art. 319(2) du Code criminel", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K116", "canonical_en": "Criminal Code s. 430", "canonical_fr": "art. 430 du Code criminel", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K117", "canonical_en": "Divorce Act", "canonical_fr": "Loi sur le divorce", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K118", "canonical_en": "Education Act", "canonical_fr": "Loi sur l'éducation", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K119", "canonical_en": "Human Rights Code", "canonical_fr": "Code des droits de la personne", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K120", "canonical_en": "Quebec Charter", "canonical_fr": "Charte québécoise", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K121", "canonical_en": "s. 27 multiculturalism", "canonical_fr": "art. 27 (multiculturalisme)", "tier": 3, "area": "Entities — Statutes"}
+{"keyword_id": "K122", "canonical_en": "swastika", "canonical_fr": "croix gammée", "tier": 3, "area": "Entities — Symbols"}
