@@ -18,13 +18,19 @@ import '../styles/index.css'
 
 const path = new URLSearchParams(location.search).get('mod') ?? ''
 
+// The harness cannot know a component's props, so it types them as an open bag
+// rather than `never`. `FC<never>` reads as "accepts no props at all", which
+// makes the component unusable as JSX and unspreadable — the props passed in
+// config.tsx would have nowhere to go.
+type AnyComponent = React.ComponentType<Record<string, unknown>>
+
 /** Prefer the export named after the file, then default, then any function export. */
 function pickExport(mod: Record<string, unknown>, modPath: string) {
     const base = moduleName(modPath)
-    if (typeof mod[base] === 'function') return { name: base, Comp: mod[base] as React.FC<never> }
-    if (typeof mod.default === 'function') return { name: 'default', Comp: mod.default as React.FC<never> }
+    if (typeof mod[base] === 'function') return { name: base, Comp: mod[base] as AnyComponent }
+    if (typeof mod.default === 'function') return { name: 'default', Comp: mod.default as AnyComponent }
     const found = Object.entries(mod).find(([, v]) => typeof v === 'function')
-    if (found) return { name: found[0], Comp: found[1] as React.FC<never> }
+    if (found) return { name: found[0], Comp: found[1] as AnyComponent }
     return null
 }
 
@@ -91,6 +97,9 @@ async function mount() {
         return
     }
 
+    // Dynamic import can take a moment on a cold frame; show something first.
+    root.render(<Loading />)
+
     let mod: Record<string, unknown>
     try {
         mod = (await loader()) as Record<string, unknown>
@@ -112,7 +121,7 @@ async function mount() {
         return
     }
 
-    const props = (overrides[path]?.props ?? {}) as never
+    const props = (overrides[path]?.props ?? {}) as Record<string, unknown>
 
     // MemoryRouter so router hooks work without the frame fighting the parent URL.
     root.render(
