@@ -970,16 +970,19 @@ def shape(row: sqlite3.Row, rank: int, conn: sqlite3.Connection) -> dict:
     #
     # Derived from the band rather than exposed as a raw number, so the client
     # never has to know the band constants. `relevance - band` is the case's own
-    # score: zero in the body band means it was promoted, not matched.
+    # score: zero means it was promoted by a sibling, not matched. Tested in the
+    # two bands that run family promotion -- parties and body. Priority 1 has no
+    # promotion, so every row there matched on its own.
     band = d.pop("band", None)
+    own = None if d.get("relevance") is None or band is None else d["relevance"] - band
     if band is None or d.get("relevance") is None:
         d["matched"] = None
     elif band >= BAND_NAME:
         d["matched"] = "case_name"
     elif band >= BAND_PARTIES:
-        d["matched"] = "parties"
+        d["matched"] = "parties" if own > 0 else "family"
     else:
-        d["matched"] = "text" if d["relevance"] - band > 0 else "family"
+        d["matched"] = "text" if own > 0 else "family"
     return d
 
 
@@ -1411,7 +1414,11 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
                + CASE WHEN pref = 1 THEN ? ELSE 0 END AS score,
                NULL AS excerpt
         FROM (
-            SELECT cid AS case_id, ? AS band, 0 AS term_rank, exact, pref,
+            -- trank, NOT 0: this is what groups the results by which query
+            -- term matched first. Hardcoding 0 collapsed every row to the same
+            -- rank, so `keegstra zundel` interleaved the two sets by court
+            -- instead of listing every Keegstra before every Zundel.
+            SELECT cid AS case_id, ? AS band, trank AS term_rank, exact, pref,
                    CASE WHEN run = 1 THEN ? WHEN hits = ? THEN ? ELSE ? END AS lvl,
                    CASE WHEN run = 1 OR hits = ? THEN 0 ELSE hits END AS sub
             FROM ({inner})
@@ -1466,17 +1473,19 @@ def match_parties(q: str, toks: list[str]) -> SqlReturn | None:
             return None
         ctes, cps, joins, rank, score, where = _ranked(
             "p", party_cols(), party_score_expr(), exprs)
-        return SqlReturn(ctes, cps, f"""
-        SELECT c.case_id, ? AS band, {rank} AS term_rank,
+        direct = f"""
+        SELECT c.case_id, {rank} AS term_rank,
                -- A boolean query states its own conditions; there is no "how well
                -- did it match" to grade, so every grammar hit sits at one level
                -- and ordering falls through to term_rank, then the court
                -- hierarchy, then score.
-               ? AS lvl, 0 AS sub, {score} AS score,
-               NULL AS excerpt
+               ? AS lvl, 0 AS sub, {score} AS score
         FROM cases c
         {joins}
-        WHERE {where}""", [BAND_PARTIES, L_ALL])
+        WHERE {where}"""
+        fam = with_family("fp", BAND_PARTIES, direct, [L_ALL])
+        return SqlReturn(ctes + fam.ctes, cps + fam.cte_params,
+                         fam.select, fam.select_params)
 
     # Two levels, mirroring priority 1 minus the phrase level: a flat list of party
     # names has no "style of cause" to match in order, so the spec gives this
@@ -1513,18 +1522,27 @@ def match_parties(q: str, toks: list[str]) -> SqlReturn | None:
             FROM cases c
             {chr(10).join('            ' + j for j in joins).lstrip()}"""
 
-    select = f"""
-        SELECT case_id, band, term_rank, lvl, sub, lvl + sub AS score,
-               NULL AS excerpt
-        FROM (
-            SELECT cid AS case_id, ? AS band, 0 AS term_rank,
-                   CASE WHEN hits = ? THEN ? ELSE ? END AS lvl,
-                   CASE WHEN hits = ? THEN 0 ELSE hits END AS sub
-            FROM ({inner})
-            WHERE hits > 0
-        )"""
-    return SqlReturn(ctes, cte_params, select,
-                     [BAND_PARTIES, len(pt), L_ALL, L_ANY, len(pt)])
+    # Family promotion, priority 2 only. Party lists diverge between court levels
+    # far more than captions do -- 53 of 82 multi-record families list different
+    # parties -- because the SCC record names everyone in full and adds the
+    # interveners. Snyder is the plain case: the trial and appeal records say
+    # "Snyder Montreal Gazette Ltd" while the SCC record says "Gerald M. Snyder
+    # The Montreal Gazette Limited", so without this a search for "gerald" returns
+    # one record of a three-record litigation. Promoted members carry score 0,
+    # which is how shape() knows to label them "family" and not "parties".
+    direct = f"""
+            SELECT case_id, term_rank, lvl, sub, lvl + sub AS score
+            FROM (
+                SELECT cid AS case_id, 0 AS term_rank,
+                       CASE WHEN hits = ? THEN ? ELSE ? END AS lvl,
+                       CASE WHEN hits = ? THEN 0 ELSE hits END AS sub
+                FROM ({inner})
+                WHERE hits > 0
+            )"""
+    fam = with_family("fp", BAND_PARTIES, direct,
+                      [len(pt), L_ALL, L_ANY, len(pt)])
+    return SqlReturn(ctes + fam.ctes, cte_params + fam.cte_params,
+                     fam.select, fam.select_params)
 
 
 # ====================================================================== 3 ====

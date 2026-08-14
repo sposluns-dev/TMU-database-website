@@ -411,7 +411,21 @@
     font-weight: 600;
 }
 
-/* Where the query matched. Quiet by default -- it is provenance, not a headline. */
+/* Where the query matched. Quiet by default -- it is provenance, not a headline.
+   The pill alone reads as a topic tag, so it is prefixed with "Matched on:" to
+   say what the word actually is. */
+.result-matched-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.result-matched-label {
+    font-size: 0.78rem;
+    color: var(--color-text-light);
+    white-space: nowrap;
+}
+
 .result-matched {
     border: 1px solid var(--color-border, #ddd);
     border-radius: 999px;

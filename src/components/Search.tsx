@@ -735,11 +735,11 @@ export function Search() {
                   <span>{r.date}</span>
                   {place && <span className="result-place">{place}</span>}
                   {r.matched && (
-                    <span
-                      className={`result-matched result-matched-${r.matched}`}
-                      title={MATCHED_HELP[r.matched]}
-                    >
-                      {MATCHED_LABEL[r.matched]}
+                    <span className="result-matched-wrap" title={MATCHED_HELP[r.matched]}>
+                      <span className="result-matched-label">Matched on:</span>
+                      <span className={`result-matched result-matched-${r.matched}`}>
+                        {MATCHED_LABEL[r.matched]}
+                      </span>
                     </span>
                   )}
                   {r.relevance != null && (
