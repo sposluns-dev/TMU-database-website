@@ -537,7 +537,7 @@ _LEX_RE = re.compile(r'"[^"]*"|[()]|[^\s()]+')
 # The ONLY tokens allowed through to FTS5 as real syntax. They must be typed in
 # uppercase, exactly like FTS5's own convention — lowercase and/or/not stay
 # ordinary search words, so historical queries keep their meaning.
-_BOOL_OPS = {"AND", "OR", "NOT"}
+_BOOL_OPS = {"AND", "OR", "NOT", "XOR"}
 
 
 def _expand_run(toks: list[str], expand: bool) -> tuple[str | None, list[str]]:
@@ -596,6 +596,90 @@ def _expand_run(toks: list[str], expand: bool) -> tuple[str | None, list[str]]:
     return "(" + " AND ".join(groups) + ")", matched_ids
 
 
+# XOR is NOT an FTS5 operator, and FTS5 does not reject it -- it lexes it as an
+# ordinary search word, so `alpha XOR beta` quietly becomes `alpha AND xor AND beta`
+# and matches nothing. A silent zero-result is the worst possible failure here, so
+# XOR is rewritten before any expression reaches SQLite:
+#
+#     A XOR B  ->  ((A) OR (B)) NOT ((A) AND (B))
+#
+# Chained XOR folds left, which gives the usual parity meaning: A XOR B XOR C
+# matches rows containing an ODD number of A, B, C. Verified against FTS5.
+#
+# The fold roughly DOUBLES the expression per additional operand, so the number of
+# XOR-separated parts is capped. Four parts is already a 15-term expression.
+MAX_XOR_PARTS = 4
+
+
+def split_top_level(q: str, op: str) -> list[str]:
+    """Split on `op` at paren depth 0, keeping each side's own syntax intact.
+
+    An operator nested inside parentheses belongs to that sub-expression and is left
+    for FTS5; only one the user wrote at the outermost level splits the query.
+    """
+    parts, cur, depth = [], [], 0
+    for lex in _LEX_RE.findall(q):
+        if lex == "(":
+            depth += 1
+        elif lex == ")":
+            depth -= 1
+        if lex == op and depth == 0:
+            parts.append(" ".join(cur))
+            cur = []
+        else:
+            cur.append(lex)
+    parts.append(" ".join(cur))
+    return [p.strip() for p in parts if p.strip()]
+
+
+def leading_not_hint(q: str) -> str | None:
+    """A user-facing message for a query whose NOT has nothing on its left.
+
+    FTS5's NOT is BINARY: it subtracts one result set from another, so it needs a
+    starting set. `zundel NOT keegstra` is fine; `NOT keegstra` alone is a syntax
+    error, because there is nothing to subtract FROM.
+
+    Rather than surface FTS5's raw 'syntax error near "NOT"', this reads the user's
+    own terms back and, when they typed something positive elsewhere, hands them the
+    corrected query verbatim -- the common cause is simply typing the clauses in the
+    wrong order.
+
+        NOT keegstra zundel   ->  suggests: zundel NOT keegstra
+        NOT keegstra          ->  nothing positive to search; explain the shape
+
+    Returns None when the query does not start with a NOT, so callers can treat a
+    non-None result as "reject this query and show the message".
+    """
+    lexes = [l for l in _LEX_RE.findall(q) if l.strip()]
+    if not lexes or lexes[0] != "NOT":
+        return None
+
+    # Split into what the user wants kept vs. excluded. A term is excluded when the
+    # nearest preceding operator was NOT; any other operator returns to keeping.
+    keep, drop, negating = [], [], False
+    for lex in lexes:
+        if lex == "NOT":
+            negating = True
+        elif lex in _BOOL_OPS or lex in "()":
+            negating = False
+        else:
+            (drop if negating else keep).append(lex)
+            negating = False
+
+    if keep:
+        fixed = " ".join(keep) + "".join(f" NOT {d}" for d in drop)
+        return (f"NOT needs a search term before it. Did you mean: {fixed}")
+    # No positive term anywhere, so there is nothing to reconstruct. Show the shape
+    # using the user's own excluded terms rather than a canned example, and do NOT
+    # borrow one of them as the thing to search for -- "zundel NOT zundel" reads as
+    # nonsense to anyone who typed zundel.
+    excluded = " and ".join(drop) if drop else "that term"
+    tail = "".join(f" NOT {d}" for d in drop) or " NOT keegstra"
+    return ("NOT needs a search term before it -- it removes results from a search "
+            f"rather than starting one. Search for something, then exclude "
+            f"{excluded}, for example:  <your search>{tail}")
+
+
 def build_query(q: str, expand: bool = True) -> tuple[str | None, list[str]]:
     """User text -> (FTS5 MATCH expression, keyword_ids the query matched).
 
@@ -613,6 +697,25 @@ def build_query(q: str, expand: bool = True) -> tuple[str | None, list[str]]:
     NOT: an excluded term must never pull a case in or boost it. Returns
     (None, []) when there is no searchable operand, so the caller browses.
     """
+    # ---- XOR first: it has no FTS5 equivalent and must be rewritten, not passed
+    # through. Each side is built by recursing, so a side may itself contain
+    # AND/OR/NOT/parens and is handled by the ordinary path below.
+    xor_parts = split_top_level(q, "XOR")
+    if len(xor_parts) > 1:
+        if len(xor_parts) > MAX_XOR_PARTS:
+            raise ValueError(
+                f"query chains more than {MAX_XOR_PARTS} XOR terms; please simplify it")
+        built = [build_query(part, expand) for part in xor_parts]
+        if any(e is None for e, _ in built):
+            return None, []
+        acc, ids = built[0][0], list(built[0][1])
+        for expr, kids in built[1:]:
+            acc = f"(({acc}) OR ({expr})) NOT (({acc}) AND ({expr}))"
+            for k in kids:
+                if k not in ids:
+                    ids.append(k)
+        return acc, ids
+
     out: list[str] = []
     matched_ids: list[str] = []
     n_operands = 0
@@ -658,16 +761,29 @@ def build_query(q: str, expand: bool = True) -> tuple[str | None, list[str]]:
         if toks:
             emit_operand(*_expand_run(toks, expand))
 
-    for lex in _LEX_RE.findall(q):
+    lexes = _LEX_RE.findall(q)
+    i = 0
+    while i < len(lexes):
+        lex = lexes[i]
         if lex == "(":
+            # RECURSE into the group rather than passing the parens through. The
+            # group is built by build_query, so anything legal at the top level is
+            # legal inside it -- including XOR, which has to be rewritten and would
+            # otherwise leak to FTS5 as a literal word and silently match nothing.
             flush()
-            neg = negated()
-            pending_not = False
-            neg_stack.append(neg)
-            if prev == "operand":
-                out.append("AND")
-            out.append("(")
-            prev = "open"
+            depth, j = 1, i + 1
+            while j < len(lexes) and depth:
+                if lexes[j] == "(":
+                    depth += 1
+                elif lexes[j] == ")":
+                    depth -= 1
+                j += 1
+            inner = " ".join(lexes[i + 1:j - 1] if depth == 0 else lexes[i + 1:j])
+            sub, sub_ids = build_query(inner, expand)
+            if sub:
+                emit_operand(f"({sub})", sub_ids)
+            i = j
+            continue
         elif lex == ")":
             flush()
             if neg_stack:          # ignore an unbalanced ) rather than emit junk
@@ -693,6 +809,7 @@ def build_query(q: str, expand: bool = True) -> tuple[str | None, list[str]]:
                 emit_operand(phrase(toks), [])
         else:
             buf.append(lex)
+        i += 1
     flush()
 
     # A trailing operator (`religious freedom AND`, typed mid-thought) would be a
@@ -1115,6 +1232,57 @@ def _ranked(prefix: str, col: str, score: str, exprs: list[str]) -> tuple:
             " OR ".join(hit))
 
 
+def with_family(prefix: str, band: float, direct: str,
+                direct_params: list) -> SqlReturn:
+    """Wrap one priority's direct-match SELECT so WHOLE FAMILIES come back.
+
+    `direct` must emit exactly: case_id, term_rank, lvl, sub, score — no band,
+    which this adds. Cases sharing a name_key are one family (the same
+    litigation at different court levels); if any member matches, every member
+    is returned and the family sorts as one block on the best member's keys.
+
+    A promoted member keeps score 0, which is what lets shape() label it
+    "family" rather than pretending it matched.
+
+    Applied to all three priorities. It is indispensable at priority 3, where
+    the text differs completely between court levels — a search for "pleadings"
+    hits only the trial record of Snyder and pulls its appeal and Supreme Court
+    records up with it. At priorities 1 and 2 it is usually redundant, because
+    family members share a caption and so match together anyway, but not
+    always: measured on this corpus 17 of 82 families have differing captions
+    and 45 of 82 have differing party lists, and without this those return
+    partial families.
+
+    name_key NULL (the 122 anonymized RAD decisions) means "no family": such a
+    case is returned only on its own match and never promotes anything.
+    """
+    ctes = [
+        f"""{prefix}m AS MATERIALIZED (
+        SELECT d.case_id AS case_id, d.term_rank AS term_rank, d.lvl AS lvl,
+               d.sub AS sub, d.score AS score, c2.name_key AS name_key
+        FROM ({direct}) d
+        JOIN cases c2 ON c2.case_id = d.case_id
+    )""",
+        f"""{prefix}f AS MATERIALIZED (
+        SELECT name_key, MAX(lvl) AS lvl, MIN(term_rank) AS term_rank,
+               MAX(sub) AS sub
+        FROM {prefix}m WHERE name_key IS NOT NULL GROUP BY name_key
+    )""",
+    ]
+    select = f"""
+        SELECT c.case_id, ? AS band,
+               COALESCE(f.term_rank, m.term_rank) AS term_rank,
+               COALESCE(f.lvl, m.lvl) AS lvl,
+               COALESCE(f.sub, m.sub) AS sub,
+               COALESCE(m.score, 0) AS score,
+               NULL AS excerpt
+        FROM cases c
+        LEFT JOIN {prefix}m m ON m.case_id = c.case_id
+        LEFT JOIN {prefix}f f ON f.name_key = c.name_key
+        WHERE m.case_id IS NOT NULL OR f.name_key IS NOT NULL"""
+    return SqlReturn(ctes, direct_params, select, [band])
+
+
 def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
     """1. The query matches the CASE NAME (or the citation).
 
@@ -1163,28 +1331,20 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
     ctes: list[str] = []
     cte_params: list = []
 
-    if NAMES_FTS_COLS:
-        # AS MATERIALIZED is REQUIRED, not a hint. bm25() is an FTS5 auxiliary
-        # function and is only legal in a SELECT that queries the fts table
-        # directly; if SQLite flattens this CTE into the outer LEFT JOIN the call
-        # lands outside that context and the whole query dies with "unable to use
-        # function bm25 in the requested context". Materialising pins the bm25
-        # evaluation inside the CTE. (SQLite >= 3.35.)
-        #
-        # OR, not AND, since level 3 admits a case that matched only one term. The
-        # level CASE below does the band separation; this only supplies a bm25
-        # tie-break within a level.
-        ctes.append(f"""nm AS MATERIALIZED (
-            SELECT rowid AS rid, {name_score_expr()} AS s
-            FROM names_fts WHERE names_fts MATCH ?
-        )""")
-        cte_params.append(" OR ".join(f'{{case_name}} : "{t}"*' for t in toks))
-        join, fts_score, fts_hit = ("LEFT JOIN nm ON nm.rid = c.rowid",
-                                    "COALESCE(nm.s, 0)", "nm.rid IS NOT NULL")
-    else:
-        # No name index: LIKE alone still answers this priority, it just loses the
-        # in-band tie-break. Band placement is unaffected.
-        join, fts_score, fts_hit = "", "0", "0"
+    # NO bm25 HERE, deliberately. It was scoring -bm25(names_fts, 1.0, 0.0), but
+    # FTS5 normalises by the WHOLE ROW's length and names_fts rows are
+    # (case_name, parties) -- so weighting parties 0.0 removes its score
+    # contribution but NOT its length contribution. Measured on "keegstra": five
+    # records with the identical caption "R. v. Keegstra" scored 7.601 vs 6.736
+    # purely on how many parties each listed, and the SCC record scored 2.655
+    # against the trial court's 7.601 because it carries 379 characters of
+    # interveners. That is noise, not ranking.
+    #
+    # Nothing is lost: by the time ORDER BY reaches the score, rows are already
+    # tied on band, term_rank, lvl and sub, so every query term matched at the
+    # same level and bm25 has no signal left to add. Ties now fall through to
+    # court hierarchy, then the exact/prefix bonuses, then date.
+    join = ""
 
     # Each token must start a WORD, not merely appear somewhere. A bare '%tok%' let
     # the token "r" in "R. v. Keegstra" match the r inside "Corporation", pulling in
@@ -1209,16 +1369,26 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
     chits_sum = (" + ".join([f"CASE WHEN {tok_hit} THEN 1 ELSE 0 END"] * len(content))
                  if content else "0")
 
+    # Which query term matched FIRST, by the order they were typed. "Keegstra
+    # Zundel" then returns every Keegstra case (ordered by court) before every
+    # Zundel case, rather than interleaving the two by court level.
+    #
+    # Built over CONTENT tokens only. Including stop words would collapse it:
+    # in "R. v. Keegstra Zundel" every case matches the leading "r", so every
+    # case would rank at term 0 and the grouping would vanish.
+    trank = (" ".join(f"WHEN {tok_hit} THEN {i}" for i in range(len(content)))
+             if content else "")
+    trank_expr = f"CASE {trank} ELSE {len(content)} END" if content else "0"
+
     # The per-token hit count is needed three times over (to pick the level, to
     # break ties inside level 3, and to filter), so it is computed ONCE in an
     # inner select and referenced by name. Repeating the expression instead would
     # triple the bind parameters and the chance of getting their order wrong.
     inner = f"""
             SELECT c.case_id AS cid,
-                   {fts_score} AS fs,
-                   CASE WHEN {fts_hit} THEN 1 ELSE 0 END AS fh,
                    ({hits_sum}) AS hits,
                    ({chits_sum}) AS chits,
+                   ({trank_expr}) AS trank,
                    CASE WHEN {NAME_CIT} LIKE ? THEN 1 ELSE 0 END AS run,
                    CASE WHEN norm(c.case_name) = ? THEN 1 ELSE 0 END AS exact,
                    CASE WHEN {NAME_CIT} LIKE ? THEN 1 ELSE 0 END AS pref
@@ -1236,12 +1406,12 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
     # "λ ascending within a level".
     select = f"""
         SELECT case_id, band, term_rank, lvl, sub,
-               fs + lvl + sub
+               lvl + sub
                + CASE WHEN exact = 1 THEN ? ELSE 0 END
                + CASE WHEN pref = 1 THEN ? ELSE 0 END AS score,
                NULL AS excerpt
         FROM (
-            SELECT cid AS case_id, ? AS band, 0 AS term_rank, fs, exact, pref,
+            SELECT cid AS case_id, ? AS band, 0 AS term_rank, exact, pref,
                    CASE WHEN run = 1 THEN ? WHEN hits = ? THEN ? ELSE ? END AS lvl,
                    CASE WHEN run = 1 OR hits = ? THEN 0 ELSE hits END AS sub
             FROM ({inner})
@@ -1255,8 +1425,9 @@ def match_case_name(q: str, toks: list[str], nq: str) -> SqlReturn | None:
     select_params = (
         [N_EXACT, N_PREFIX,
          BAND_NAME, L_PHRASE, len(toks), L_ALL, L_ANY, len(toks)]
-        + [p for t in toks for p in (f"{t}%", f"% {t}%")]
-        + [p for t in content for p in (f"{t}%", f"% {t}%")]
+        + [p for t in toks for p in (f"{t}%", f"% {t}%")]        # hits_sum
+        + [p for t in content for p in (f"{t}%", f"% {t}%")]     # chits_sum
+        + [p for t in content for p in (f"{t}%", f"% {t}%")]     # trank_expr
         + [f"%{nq}%", nq, f"{nq}%"]
         + [len(toks)]
     )
@@ -1317,7 +1488,7 @@ def match_parties(q: str, toks: list[str]) -> SqlReturn | None:
     ctes, cte_params, joins, hit_flags = [], [], [], []
     for i, t in enumerate(pt):
         ctes.append(f"""pm{i} AS MATERIALIZED (
-        SELECT rowid AS rid, {party_score_expr()} AS s
+        SELECT rowid AS rid
         FROM names_fts WHERE names_fts MATCH ?
     )""")
         cte_params.append(f'{{{party_cols()}}} : "{t}"*')
@@ -1325,22 +1496,28 @@ def match_parties(q: str, toks: list[str]) -> SqlReturn | None:
         hit_flags.append(f"CASE WHEN pm{i}.rid IS NOT NULL THEN 1 ELSE 0 END")
 
     hits_sum = " + ".join(hit_flags)
-    # Any matching token's bm25 will do as the tie-break — they are all scores of
-    # the same row against the same column, so COALESCE picks the first present.
-    score_x = ", ".join(f"pm{i}.s" for i in range(len(pt)))
 
+    # NO bm25 HERE, for the same reason it is gone from priority 1. bm25 normalises
+    # by the WHOLE ROW's length and names_fts rows are (case_name, parties), so
+    # weighting case_name 0.0 drops its score contribution but not its length
+    # contribution -- a case with a long caption is penalised on a query that never
+    # looked at the caption. Measured on "keegstra majesty": the SCC R. v. Keegstra
+    # scored 2.655 against 6.736 for the two ABCA records of the same litigation,
+    # purely because it lists 379 characters of interveners.
+    #
+    # The CTEs above stay: they are what detect a hit (pm{i}.rid IS NOT NULL) and
+    # feed `hits`. Only the score is dropped.
     inner = f"""
             SELECT c.case_id AS cid,
-                   COALESCE({score_x}, 0) AS fs,
                    ({hits_sum}) AS hits
             FROM cases c
             {chr(10).join('            ' + j for j in joins).lstrip()}"""
 
     select = f"""
-        SELECT case_id, band, term_rank, lvl, sub, fs + lvl + sub AS score,
+        SELECT case_id, band, term_rank, lvl, sub, lvl + sub AS score,
                NULL AS excerpt
         FROM (
-            SELECT cid AS case_id, ? AS band, 0 AS term_rank, fs,
+            SELECT cid AS case_id, ? AS band, 0 AS term_rank,
                    CASE WHEN hits = ? THEN ? ELSE ? END AS lvl,
                    CASE WHEN hits = ? THEN 0 ELSE hits END AS sub
             FROM ({inner})
@@ -1593,6 +1770,22 @@ def search(
                        "search in.",
         }
 
+    # Caught HERE rather than left to FTS5, which reports 'syntax error near "NOT"'
+    # -- accurate but useless to a researcher. leading_not_hint() reads the user's
+    # own terms back and, where it can, hands them the corrected query.
+    hint = leading_not_hint(q)
+    if hint:
+        return {
+            "query": q,
+            "mode": "bad_query",
+            "expanded_to": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "results": [],
+            "warning": hint,
+        }
+
     # `expanded_to` is part of the response CONTRACT, not a nicety: the frontend
     # does `data.expanded_to.map(...)` unconditionally (api.ts) and renders the
     # result as "we also searched for" chips (Search.tsx). Omitting it — as the
@@ -1602,7 +1795,21 @@ def search(
     #
     # The ids come from the same synonym expansion priority 3 runs, so what is
     # reported is exactly what was searched.
-    _, matched_ids = build_query(strip_stop_words(q), expand=True) if q else (None, [])
+    # Same ceilings apply here -- this call runs BEFORE the priorities are built, so
+    # without its own guard an over-long query 500s before reaching the handler below.
+    try:
+        _, matched_ids = build_query(strip_stop_words(q), expand=True) if q else (None, [])
+    except ValueError as e:
+        return {
+            "query": q,
+            "mode": "bad_query",
+            "expanded_to": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "results": [],
+            "warning": str(e),
+        }
     expanded_to = [{"keyword_id": kid,
                     "en": VOCAB.terms[kid]["canonical_en"],
                     "fr": VOCAB.terms[kid]["canonical_fr"]}
@@ -1653,9 +1860,26 @@ def search(
         # None when it has nothing to contribute. Order matters: params bind in the
         # order the `?` appear in the assembled SQL TEXT, which is every CTE first
         # (in fragment order) and then every select (in the same order).
-        frags = [f for f in (match_case_name(q, toks, nq) if in_name else None,
-                             match_parties(q, toks) if in_parties else None,
-                             match_body(q) if in_text else None) if f]
+        # build_query raises ValueError on the query-cost ceilings (too many distinct
+        # terms, too many chained XORs). Those are user input errors, not server
+        # faults: without this they surface as a 500, which tells the researcher
+        # nothing and looks like an outage.
+        try:
+            frags = [f for f in (match_case_name(q, toks, nq) if in_name else None,
+                                 match_parties(q, toks) if in_parties else None,
+                                 match_body(q) if in_text else None) if f]
+        except ValueError as e:
+            return {
+                "query": q,
+                "mode": "bad_query",
+                "priorities_built": scoped,
+                "expanded_to": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "results": [],
+                "warning": str(e),
+            }
         if not frags:
             return {"query": q, "mode": mode,
                     "priorities_built": scoped,
