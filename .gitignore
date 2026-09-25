@@ -32,6 +32,10 @@ db/cases.db
 db/cases.db-wal
 db/cases.db-shm
 db/*.bak
+# Vector index for MCP semantic search — regenerated from cases.db by
+# scripts/build_embeddings.py (~25 min on an M2 Pro).
+db/embeddings/
+db/.embeddings-*/
 db/*.bak-*
 
 # ---------------------------------------------------------------------------
