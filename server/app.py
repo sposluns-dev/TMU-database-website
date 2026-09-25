@@ -60,8 +60,10 @@ import os
 import re
 import sqlite3
 import threading
+import time
 import unicodedata
 from contextlib import asynccontextmanager
+import functools
 from functools import lru_cache
 from typing import Iterable, NamedTuple
 
@@ -1718,7 +1720,58 @@ def match_body(q: str) -> SqlReturn | None:
     return SqlReturn(ctes, cte_params, select, [BAND_BODY])
 
 
+# ============================================================== usage log ====
+# WHAT IS RECORDED, AND WHY IT IS THIS AND NOT THE REQUEST LOG
+# Cloud Run writes an automatic request log for every call, and that log always
+# carries httpRequest.remoteIp, userAgent and referer. A log sink copies entries
+# verbatim -- it can choose WHICH entries are exported but cannot rewrite or drop
+# a field -- so sinking the request log to BigQuery necessarily lands the client
+# IP next to the search terms, and stripping it afterwards means it was stored
+# first. This emits our own event instead, so the IP is never written anywhere we
+# retain.
+#
+# The searches are the product here: which terms return nothing is what tells us
+# the controlled vocabulary has a gap. WHO ran them is not collected at all --
+# no IP, no user agent, no referer, no session id. That is deliberate and it is
+# what makes the retained record non-personal: a bare list of queries cannot be
+# attributed to anyone, so it needs no expiry and raises nothing under PIPEDA.
+# Reinstating any per-user identifier would undo that in one line, so don't.
+#
+# Printed as a single-line JSON object because Cloud Run parses stdout that way
+# into jsonPayload, which is what the sink filters on.
+def log_search(fn):
+    """Emit one structured search event per call, with nothing identifying in it."""
+    @functools.wraps(fn)                     # FastAPI reads the endpoint's
+    def wrapper(*args, **kwargs):            # signature; wraps() preserves it
+        t0 = time.perf_counter()             # via __wrapped__.
+        res = fn(*args, **kwargs)
+        try:
+            q = (kwargs.get("q") or "").strip()
+            if q:
+                print(json.dumps({
+                    "severity": "INFO",
+                    "event": "search",
+                    "q": q[:MAX_Q_CHARS],
+                    "mode": res.get("mode"),
+                    "total": res.get("total"),
+                    "returned": len(res.get("results", []) or []),
+                    "in_name": kwargs.get("in_name"),
+                    "in_parties": kwargs.get("in_parties"),
+                    "in_text": kwargs.get("in_text"),
+                    "filter_count": sum(
+                        1 for key in ("court", "province", "practice_area",
+                                      "keyword", "keyword_group")
+                        if kwargs.get(key)),
+                    "latency_s": round(time.perf_counter() - t0, 4),
+                }, ensure_ascii=False))
+        except Exception:
+            pass                             # logging must never break a search
+        return res
+    return wrapper
+
+
 @app.get("/search")
+@log_search
 def search(
     q: str = Query("", max_length=MAX_Q_CHARS,
                    description="Free text, matched against the case name and "

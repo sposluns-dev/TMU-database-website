@@ -186,7 +186,11 @@ export function Search() {
     setOpenCase({ id, view });
 
   const [sort, setSort] = useState<SortKey>("relevance");
-  const [perPage, setPerPage] = useState(30);
+  // 0 by default: landing on /search should not dump 1,587 cases at a visitor
+  // who has not asked for anything. The fetch still runs, so the result COUNT
+  // and the facet numbers are live -- only the cards are withheld until the
+  // reader picks a page size or runs a search.
+  const [perPage, setPerPage] = useState(0);
   const [view, setView] = useState<View>("cards");
   const [showViz, setShowViz] = useState(false);
   const [showTips, setShowTips] = useState(false);
@@ -634,6 +638,7 @@ export function Search() {
             <label>
               Show:{" "}
               <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+                <option value={0}>0</option>
                 <option value={30}>30</option>
                 <option value={100}>100</option>
                 <option value={300}>300</option>
