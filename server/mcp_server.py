@@ -12,6 +12,12 @@ that already exists. That is deliberate: the ranking rules in app.py are
 non-trivial (three priorities, boolean grammar, synonym expansion, court
 hierarchy) and must not be reimplemented here where they would drift.
 
+ONE EXCEPTION: semantic_search runs in-process through semantic.py, against
+db/embeddings/ and cases.db directly. It is deliberately MCP-only — the website
+has no route to it — and its ranking (cosine over chunk vectors) has no REST
+counterpart to drift from. semantic.py is imported lazily inside the tool, so a
+missing index or missing onnxruntime disables that one tool, not the server.
+
 It supersedes the old scripts-workspace/mcp_server.py, which talked to a Chroma
 vector store that no longer exists.
 
@@ -81,7 +87,14 @@ mcp = FastMCP(
         "vocabulary, then search_cases (optionally filtered by those keyword_ids), "
         "then get_case for the full text of anything you intend to rely on. "
         "Search returns snippets only — never quote a judgment from a snippet "
-        "alone."
+        "alone.\n\n"
+        "Two search tools, for different questions. search_cases is lexical: "
+        "use it for case names, citations, parties, exact terms and boolean "
+        "queries. semantic_search matches MEANING: use it for questions "
+        "described in your own words (\"a landlord refusing to let a tenant "
+        "build a sukkah\"), for concepts the judgment may phrase differently, "
+        "and across English and French. For research questions, run both and "
+        "merge — each finds cases the other misses."
     ),
 )
 
@@ -419,6 +432,82 @@ async def dataset_coverage() -> dict[str, Any]:
         return data
     total = sum(c.get("count", 0) for c in (data.get("courts") or []))
     return {"description": f"JICL — {CORPUS}.", "total_cases": total, **data}
+
+
+@mcp.tool()
+async def semantic_search(
+    query: str,
+    court: str = "",
+    level: Literal["", "UC", "LC"] = "",
+    language: Literal["", "en", "fr"] = "",
+    date_from: str = "",
+    date_to: str = "",
+    limit: int = 10,
+    passages_per_case: int = 2,
+) -> dict[str, Any]:
+    """
+    Search the JICL collection by MEANING, using embeddings of the full judgment
+    text. Finds passages that express an idea even when they share no words with
+    the query, and matches across English and French in both directions.
+
+    USE IT FOR: questions in natural language ("a school board disciplining a
+    teacher for antisemitic publications"), legal concepts the courts may word
+    differently, and fact patterns. USE search_cases INSTEAD for case names,
+    citations, party names, exact phrases, or boolean logic — embeddings are
+    poor at exact identifiers.
+
+    RANKING: cases are ordered by their single best-matching passage (cosine
+    similarity, typically 0.80-0.90 here; only the ORDER is meaningful, not the
+    absolute score). There is no court-hierarchy boost, unlike search_cases.
+
+    RETURNS {query, model, returned, results[]}. Each result carries case
+    metadata, `score`, and `passages[]` — each with `text` (up to 700 chars),
+    `start_char` and `end_char`. To read around a passage, call
+    get_case(case_id, include_text=True, start_char=max(0, start_char - 2000)).
+    Passages are EXCERPTS: read the case before relying on or quoting it.
+
+    COST: ~0.5k tokens per result at passages_per_case=2. The first call after a
+    cold start takes ~3 s while the model loads; later calls take ~20 ms.
+
+    Args:
+        query: What you are looking for, in plain English or French. A full
+            sentence works better than keywords.
+        court: Comma-separated court codes, e.g. "SCC,ONCA". See dataset_coverage.
+        level: "UC" for upper-court decisions, "LC" for lower court, "" for both.
+        language: "en" or "fr" to restrict by judgment language.
+        date_from: Earliest decision date, YYYY-MM-DD.
+        date_to: Latest decision date, YYYY-MM-DD.
+        limit: Cases to return, 1-25 (default 10).
+        passages_per_case: Best-matching passages to show per case, 1-3.
+    """
+    import anyio
+
+    if not query.strip():
+        return {"error": "semantic_search needs a query; to browse by filters "
+                         "alone, use search_cases with an empty query"}
+    try:
+        import semantic
+    except ImportError as e:
+        return {"error": f"semantic search unavailable: {e}",
+                "hint": "use search_cases instead"}
+
+    def run():
+        return semantic.search(
+            query,
+            limit=max(1, min(limit, MAX_RESULTS)),
+            passages_per_case=max(1, min(passages_per_case, 3)),
+            court=[c.strip() for c in court.split(",") if c.strip()],
+            level=level, language=language,
+            date_from=date_from, date_to=date_to,
+        )
+
+    try:
+        # Off the event loop: the first call loads ~550 MB and hashes cases.db.
+        return await anyio.to_thread.run_sync(run)
+    except semantic.SemanticIndexError as e:
+        return {"error": str(e), "hint": "use search_cases instead"}
+    except Exception as e:                                   # pragma: no cover
+        return {"error": f"{type(e).__name__}: {e}", "hint": "use search_cases instead"}
 
 
 def asgi_app(path: str = "/"):

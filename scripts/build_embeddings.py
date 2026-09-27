@@ -17,8 +17,13 @@ Output (db/embeddings/):
                     so the index cannot drift out of sync with the database it
                     was built from; slice it back out with text[start:end].
     manifest.json   model, chunking parameters and the cases.db fingerprint the
-                    index was built against. The server should refuse to load an
+                    index was built against. The server refuses to load an
                     index whose fingerprint does not match its cases.db.
+    query-model/    the SAME model as ONNX (model.onnx + tokenizer.json), pinned
+                    to QUERY_MODEL_REVISION. The server embeds queries with this
+                    through onnxruntime rather than sentence-transformers, which
+                    keeps PyTorch (~1 GB) out of the Cloud Run image. Measured
+                    cosine against the PyTorch vectors: see server/semantic.py.
 
 MODEL: intfloat/multilingual-e5-small. Multilingual because 119 of the cases are
 in French, and a query in either language should reach both. Small (118M
@@ -36,6 +41,7 @@ its vector.
 Usage:
     python scripts/build_embeddings.py              # full build
     python scripts/build_embeddings.py --limit 20   # quick timing run on 20 cases
+    python scripts/build_embeddings.py --query-model-only   # (re)fetch query-model/
 """
 import argparse
 import hashlib
@@ -62,6 +68,12 @@ QUERY_PREFIX = "query: "   # recorded in the manifest for the server; unused her
 # window once the case-name header is added — longer chunks would be silently
 # truncated by the tokenizer. The overlap keeps a sentence that straddles a
 # boundary retrievable from at least one side.
+# Pinned so a model update on the Hub can never make query vectors disagree
+# with an index built earlier.
+QUERY_MODEL_REVISION = "614241f622f53c4eeff9890bdc4f31cfecc418b3"
+QUERY_MODEL_FILES = {"onnx/model.onnx": "model.onnx",
+                     "onnx/tokenizer.json": "tokenizer.json"}
+
 CHUNK_CHARS = 1500
 OVERLAP_CHARS = 200
 BATCH_SIZE = 64
@@ -107,10 +119,28 @@ def pick_device() -> str:
     return "cpu"
 
 
+def fetch_query_model(dest: Path) -> None:
+    """Download the pinned ONNX export of MODEL_NAME into dest/ (~470 MB)."""
+    from huggingface_hub import hf_hub_download
+    dest.mkdir(parents=True, exist_ok=True)
+    for remote, local in QUERY_MODEL_FILES.items():
+        src = hf_hub_download(MODEL_NAME, remote, revision=QUERY_MODEL_REVISION)
+        shutil.copyfile(src, dest / local)
+    print(f"query model -> {dest.relative_to(ROOT)}/ @ {QUERY_MODEL_REVISION[:12]}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--limit", type=int, help="embed only the first N cases (timing test)")
+    ap.add_argument("--query-model-only", action="store_true",
+                    help="only (re)fetch query-model/ into the existing index")
     args = ap.parse_args()
+
+    if args.query_model_only:
+        if not (OUT_DIR / "manifest.json").exists():
+            sys.exit(f"no index at {OUT_DIR} — run a full build first")
+        fetch_query_model(OUT_DIR / "query-model")
+        return
 
     if not DB_PATH.exists():
         sys.exit(f"missing {DB_PATH} — run scripts/build_db.py first")
@@ -165,6 +195,7 @@ def main():
         "overlap_chars": OVERLAP_CHARS,
         "n_cases": len({c["case_id"] for c in chunks}),
         "n_chunks": len(chunks),
+        "query_model_revision": QUERY_MODEL_REVISION,
         "partial": bool(args.limit),
         "cases_db_sha256": db_fingerprint(DB_PATH),
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -180,6 +211,7 @@ def main():
             for i, c in enumerate(chunks):
                 f.write(json.dumps({"i": i, **c}) + "\n")
         (tmp / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+        fetch_query_model(tmp / "query-model")
         if OUT_DIR.exists():
             shutil.rmtree(OUT_DIR)
         os.replace(tmp, OUT_DIR)

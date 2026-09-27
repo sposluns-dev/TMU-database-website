@@ -32,8 +32,11 @@ cd "$(dirname "$0")"
 REGION="${REGION:-northamerica-northeast2}"
 SERVICE="${SERVICE:-tmu-case-db}"
 SRC_DB="../db/cases.db"
+SRC_EMB="../db/embeddings"
 
-for f in "${SRC_DB}" "keyword-vocab.csv"; do
+for f in "${SRC_DB}" "keyword-vocab.csv" "${SRC_EMB}/manifest.json" \
+         "${SRC_EMB}/vectors.npy" "${SRC_EMB}/chunks.jsonl" \
+         "${SRC_EMB}/query-model/model.onnx" "${SRC_EMB}/query-model/tokenizer.json"; do
     if [ ! -f "${f}" ]; then
         echo "missing input: ${f}" >&2
         exit 1
@@ -42,20 +45,34 @@ done
 
 # Remove the staged DB however we exit -- success, failure or Ctrl-C.
 # (keyword-vocab.csv lives here permanently and is never staged/removed.)
-cleanup() { rm -f cases.db; }
+cleanup() { rm -f cases.db; rm -rf embeddings; }
 trap cleanup EXIT
 
 echo "staging build inputs..."
 cp "${SRC_DB}" cases.db
 echo "  cases.db        $(du -h cases.db | cut -f1)"
+
+# The semantic index is only valid against the cases.db it was built from
+# (semantic.py refuses a mismatch at runtime, so shipping a stale one would
+# silently disable semantic_search in production). Catch it here instead.
+DB_SHA="$(shasum -a 256 cases.db | cut -d' ' -f1)"
+if ! grep -q "\"cases_db_sha256\": \"${DB_SHA}\"" "${SRC_EMB}/manifest.json"; then
+    echo "db/embeddings/ was built from a different cases.db." >&2
+    echo "rebuild it: python3 scripts/build_embeddings.py" >&2
+    exit 1
+fi
+cp -R "${SRC_EMB}" embeddings
+echo "  embeddings      $(du -sh embeddings | cut -f1)"
 echo "  keyword-vocab   $(wc -l < keyword-vocab.csv | tr -d ' ') lines"
 
+# 3Gi, not the old 1Gi: semantic_search loads ~1.7 GB (ONNX query model plus
+# vectors) on first use, in the same container as the REST API. See semantic.py.
 echo "deploying ${SERVICE} to ${REGION}..."
 gcloud run deploy "${SERVICE}" \
     --source . \
     --region "${REGION}" \
     --allow-unauthenticated \
-    --memory 1Gi \
+    --memory 3Gi \
     --cpu-boost \
     --max-instances 4 \
     --min-instances 0

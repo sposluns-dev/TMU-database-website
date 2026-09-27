@@ -10,7 +10,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # copied before cases.db, editing one line of Python would rebuild and re-push a
 # fresh ~191 MB layer on every deploy and pile up storage in Artifact Registry.
 # This way a code-only deploy reuses the cached DB layer and pushes ~10 KB.
+# The semantic-search query model (~490 MB) goes BEFORE cases.db: it is pinned
+# and changes only when the model does, so a data-only redeploy reuses it. The
+# index files depend on cases.db (semantic.py checks its sha256), so they follow.
+COPY embeddings/query-model/ ./embeddings/query-model/
 COPY cases.db .
+COPY embeddings/manifest.json embeddings/chunks.jsonl embeddings/vectors.npy ./embeddings/
 COPY keyword-vocab.csv .
 COPY app.py .
 # app.py imports this to mount /mcp. The import is guarded, so OMITTING IT FAILS
@@ -19,8 +24,12 @@ COPY app.py .
 # because this Dockerfile copies files individually (see the layer note above),
 # so a new module beside app.py is invisible to the image unless listed here.
 COPY mcp_server.py .
+# Same trap as mcp_server.py: omit it and semantic_search returns an import
+# error while every other tool keeps working.
+COPY semantic.py .
 
 ENV SEARCH_DB=/app/cases.db \
+    JICL_EMBEDDINGS=/app/embeddings \
     SEARCH_VOCAB=/app/keyword-vocab.csv \
     SEARCH_IMMUTABLE=1 \
     PYTHONUNBUFFERED=1

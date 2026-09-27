@@ -12,3 +12,11 @@ uvicorn[standard]==0.52.3
 # with requirements-mcp.txt, which is the standalone/stdio install.
 fastmcp==3.4.7
 httpx==0.28.1
+
+# semantic_search (MCP-only), via semantic.py. Query embedding runs on
+# onnxruntime rather than sentence-transformers so PyTorch (~1 GB) stays out of
+# the image. Imported lazily by the tool, so omitting these disables only
+# semantic_search.
+numpy==2.3.2
+onnxruntime==1.24.2
+tokenizers==0.22.2
