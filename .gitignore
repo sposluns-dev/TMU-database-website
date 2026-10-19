@@ -37,6 +37,11 @@ db/*.bak
 db/embeddings/
 db/.embeddings-*/
 db/*.bak-*
+# Copies that server/deploy.sh stages into server/ for the length of a deploy.
+server/cases.db
+server/embeddings/
+# Deploy script — kept local only for now (single deployer).
+server/deploy.sh
 
 # ---------------------------------------------------------------------------
 # PYTHON — the backend and pipeline now live in this repo
