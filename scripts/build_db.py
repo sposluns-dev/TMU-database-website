@@ -11,7 +11,7 @@ existing database untouched.
 Load order matters (foreign keys):
 
     keyword-vocab.csv -> keywords.jsonl  ->  keywords        (no parents)
-    cases-JSON/{lower,upper}-JSON/JICL*.json -> cases       (no parents)
+    cases-JSON/JICL-JSON/JICL*.json      ->  cases           (no parents)
     cases-JSON/case_metadata.jsonl       ->  case_metadata   (FK -> cases)
     cases-JSON/case_firac.jsonl          ->  case_firac      (FK -> cases)
 
@@ -48,8 +48,7 @@ DB       = os.path.join(ROOT, "db", "cases.db")
 SCHEMA   = os.path.join(ROOT, "db", "schema.sql")
 VOCAB    = os.path.join(ROOT, "server", "keyword-vocab.csv")
 JSON_DIR = os.path.join(ROOT, "cases-JSON")
-LOWER    = os.path.join(JSON_DIR, "lower-JSON")
-UPPER    = os.path.join(JSON_DIR, "upper-JSON")
+CASE_DIR = os.path.join(JSON_DIR, "JICL-JSON")
 KEYWORDS = os.path.join(JSON_DIR, "keywords.jsonl")
 METADATA = os.path.join(JSON_DIR, "case_metadata.jsonl")
 # Parties live in their own file, not in case_metadata.jsonl: extraction and role
@@ -325,33 +324,30 @@ def name_key(case_name):
 
 
 def load_cases(conn):
-    n = 0
-    for path in (UPPER, LOWER):
-        rows = []
-        for d in read_case_dir(path, "JICL"):
-            cid = clean(d.get("id")) or clean(d.get("case_id"))
-            if cid is None:
-                skipped.append(("cases", f"<{path}>", "no id"))
-                continue
-            nm = clean(d.get("case_name"))
-            rows.append((
-                cid,
-                clean(d.get("citation")),
-                nm,
-                clean(d.get("court")),
-                norm_date(d.get("date"), cid),
-                norm_language(d.get("language"), cid),
-                norm_url(d.get("url"), cid),
-                norm_source(d.get("source"), cid),
-                clean(d.get("text")),
-                name_key(nm),
-            ))
-        conn.executemany(
-            "INSERT INTO cases (case_id, citation, case_name, court, date, "
-            "language, url, source, text, name_key) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            rows)
-        n += len(rows)
-    return n
+    rows = []
+    for d in read_case_dir(CASE_DIR, "JICL"):
+        cid = clean(d.get("id")) or clean(d.get("case_id"))
+        if cid is None:
+            skipped.append(("cases", f"<{CASE_DIR}>", "no id"))
+            continue
+        nm = clean(d.get("case_name"))
+        rows.append((
+            cid,
+            clean(d.get("citation")),
+            nm,
+            clean(d.get("court")),
+            norm_date(d.get("date"), cid),
+            norm_language(d.get("language"), cid),
+            norm_url(d.get("url"), cid),
+            norm_source(d.get("source"), cid),
+            clean(d.get("text")),
+            name_key(nm),
+        ))
+    conn.executemany(
+        "INSERT INTO cases (case_id, citation, case_name, court, date, "
+        "language, url, source, text, name_key) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        rows)
+    return len(rows)
 
 
 def load_metadata(conn):
@@ -600,7 +596,7 @@ def report_taxonomy(taxonomy):
 
 def main():
     keep_going = "--keep-going" in sys.argv[1:]
-    for p in (SCHEMA, VOCAB, METADATA, FIRAC, NOTES, LOWER, UPPER):
+    for p in (SCHEMA, VOCAB, METADATA, FIRAC, NOTES, CASE_DIR):
         if not os.path.exists(p):
             sys.exit(f"missing input: {p}")
 

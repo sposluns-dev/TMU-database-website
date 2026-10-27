@@ -23,8 +23,6 @@ Two output files are written:
 Usage:
     python3 scripts/tag_cases.py --limit 3            # sync test run on 3 cases (standard price)
     python3 scripts/tag_cases.py --ids JICL0001,JICL0002  # specific cases
-    python3 scripts/tag_cases.py --court upper        # all upper-court cases
-    python3 scripts/tag_cases.py --batch --court upper  # Batch API (50% cheaper, async)
     python3 scripts/tag_cases.py --batch              # everything via batch (resumes automatically)
     python3 scripts/tag_cases.py --effort medium ...  # trade quality for cost (default: high)
     python3 scripts/tag_cases.py --dry-run --ids JICL0001  # print the prompt, no API call
@@ -62,8 +60,7 @@ API_KEY_FILE = ROOT / "!anthropic-API-key.txt"
 VOCAB_CSV = ROOT / "server" / "keyword-vocab.csv"
 SUMMARY_REF_EN = ROOT / "Keyword-Summary-Generation-Reference.md"
 SUMMARY_REF_FR = ROOT / "Keyword-Summary-Generation-Reference-FR.md"
-UPPER_DIR = ROOT / "cases-JSON" / "upper-JSON"
-LOWER_DIR = ROOT / "cases-JSON" / "lower-JSON"
+CASE_DIR = ROOT / "cases-JSON" / "JICL-JSON"
 META_EXISTING = ROOT / "cases-JSON" / "case_metadata.jsonl"        # authoritative prior data
 META_OUT = ROOT / "cases-JSON" / "case_metadata.generated.jsonl"   # staging output (merge in when reviewed)
 NOTES_OUT = ROOT / "cases-JSON" / "case_metadata_generation_notes.jsonl"
@@ -283,13 +280,8 @@ def case_user_message(case: dict) -> str:
 
 # --------------------------------------------------------------------- cases
 
-def iter_case_files(court: str) -> list[Path]:
-    files = []
-    if court in ("upper", "both"):
-        files += sorted(UPPER_DIR.glob("JICL*.json"), key=lambda p: int(p.stem[4:]))
-    if court in ("lower", "both"):
-        files += sorted(LOWER_DIR.glob("JICL*.json"), key=lambda p: int(p.stem[4:]))
-    return files
+def iter_case_files() -> list[Path]:
+    return sorted(CASE_DIR.glob("JICL*.json"), key=lambda p: int(p.stem[4:]))
 
 
 def load_done_ids() -> set[str]:
@@ -517,7 +509,6 @@ def run_batch(client, system, todo, existing_meta, valid_ids, areas, effort,
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--court", choices=["upper", "lower", "both"], default="both")
     ap.add_argument("--limit", type=int, default=None, help="stop after N cases (test runs)")
     ap.add_argument("--ids", default=None, help="comma-separated case IDs, e.g. JICL0001,JICL0002")
     ap.add_argument("--batch", action="store_true",
@@ -541,7 +532,7 @@ def main() -> int:
     print(f"Loaded {len(existing_meta)} existing rows from {META_EXISTING.name} for reconciliation.")
 
     wanted = set(args.ids.split(",")) if args.ids else None
-    files = [p for p in iter_case_files(args.court) if wanted is None or p.stem in wanted]
+    files = [p for p in iter_case_files() if wanted is None or p.stem in wanted]
     done = load_done_ids()
     todo = [p for p in files if p.stem not in done]
     print(f"{len(files)} cases selected, {len(files) - len(todo)} already done, {len(todo)} to do.")

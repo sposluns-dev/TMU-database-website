@@ -365,8 +365,7 @@ def main() -> None:
     args = ap.parse_args()
 
     paths = {}
-    for p in glob.glob(os.path.join(CASES, "upper-JSON", "*.json")) + \
-             glob.glob(os.path.join(CASES, "lower-JSON", "*.json")):
+    for p in glob.glob(os.path.join(CASES, "JICL-JSON", "*.json")):
         paths[os.path.basename(p)[:-5]] = p
     ids = sorted(paths, key=lambda s: int(re.sub(r"\D", "", s)))
     todo = ({i.strip() for i in args.only.split(',') if i.strip()} if args.only
