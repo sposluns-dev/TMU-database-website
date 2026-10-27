@@ -291,13 +291,19 @@ export function Search() {
   // support both at once (name_q filters on top of q), but offering it as a
   // third mode meant two buttons that sometimes did the same thing and a
   // checkbox to explain when. Narrowing is what the sidebar filters are for.
+  //
+  // A search is the reader asking for results, so the landing page's "Show: 0"
+  // becomes 30. A page size they picked themselves is left alone.
+  const revealResults = () => setPerPage((n) => (n === 0 ? 30 : n));
   const searchByText = () => {
     setAppliedQuery(query);
     setAppliedName("");
+    revealResults();
   };
   const searchByTitle = () => {
     setAppliedName(nameQuery);
     setAppliedQuery("");
+    revealResults();
   };
 
   async function runSearch() {
