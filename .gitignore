@@ -40,6 +40,15 @@ db/*.bak-*
 # Copies that server/deploy.sh stages into server/ for the length of a deploy.
 server/cases.db
 server/embeddings/
+# Copies that server-gcs/deploy-gcs.sh stages in from server/ and db/embeddings/.
+server-gcs/app.py
+server-gcs/mcp_server.py
+server-gcs/semantic.py
+server-gcs/requirements.txt
+server-gcs/keyword-vocab.csv
+server-gcs/query-model/
+# Website build that web-gcs/deploy-web.sh writes for the length of a deploy.
+web-gcs/dist/
 # Deploy script — kept local only for now (single deployer).
 server/deploy.sh
 

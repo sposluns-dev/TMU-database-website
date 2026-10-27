@@ -12,7 +12,9 @@
     />
     <!-- Shared site chrome — same stylesheet the static pages (scc.html) use,
          so the navbar is defined in exactly one place across all pages. -->
-    <link rel="stylesheet" href="/TMU-database-website/site.css" />
+    <!-- Root-relative on purpose: Vite prefixes the build's base path, so this is
+         /TMU-database-website/site.css on GitHub Pages and /site.css on Cloud Run. -->
+    <link rel="stylesheet" href="/site.css" />
   </head>
   <body>
     <div id="root"></div>

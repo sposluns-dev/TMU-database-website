@@ -11,8 +11,7 @@ existing database untouched.
 Load order matters (foreign keys):
 
     keyword-vocab.csv -> keywords.jsonl  ->  keywords        (no parents)
-    cases-JSON/lower-JSON/LC*.json       ->  cases           (no parents)
-    cases-JSON/upper-JSON/UC*.json       ->  cases
+    cases-JSON/{lower,upper}-JSON/JICL*.json -> cases       (no parents)
     cases-JSON/case_metadata.jsonl       ->  case_metadata   (FK -> cases)
     cases-JSON/case_firac.jsonl          ->  case_firac      (FK -> cases)
 
@@ -327,9 +326,9 @@ def name_key(case_name):
 
 def load_cases(conn):
     n = 0
-    for path, prefix in ((LOWER, "LC"), (UPPER, "UC")):
+    for path in (UPPER, LOWER):
         rows = []
-        for d in read_case_dir(path, prefix):
+        for d in read_case_dir(path, "JICL"):
             cid = clean(d.get("id")) or clean(d.get("case_id"))
             if cid is None:
                 skipped.append(("cases", f"<{path}>", "no id"))

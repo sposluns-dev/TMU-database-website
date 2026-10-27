@@ -38,7 +38,6 @@ export interface ApiCase {
   resume: string | null;
   snippet: string;
   excerpt: string;
-  level: "upper" | "lower";
   keywords: string[];
   mots_cles: string[];
   keyword_ids: string[];
@@ -73,7 +72,6 @@ export interface ApiFacets {
   provinces: { value: string; count: number }[];
   practice_areas: { value: string; count: number }[];
   languages: { value: string; count: number }[];
-  levels: { value: string; count: number }[];
   year_min: string | null;
   year_max: string | null;
 }
@@ -250,7 +248,6 @@ function toResult(r: ApiCase): SearchResult {
     summary: r.summary ?? undefined,
     resume: r.resume ?? undefined,
     language: r.language ?? undefined,
-    level: r.level,
     relevance: r.relevance ?? undefined,
     matched: r.matched ?? undefined,
   };

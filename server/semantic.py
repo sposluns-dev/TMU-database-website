@@ -146,8 +146,7 @@ def load() -> dict[str, Any]:
                               uri=True, check_same_thread=False)
         meta = {
             r[0]: {"case_id": r[0], "case_name": r[1], "citation": r[2],
-                   "court": r[3], "date": r[4], "language": r[5],
-                   "level": "upper" if r[0].startswith("UC") else "lower"}
+                   "court": r[3], "date": r[4], "language": r[5]}
             for r in con.execute(
                 "SELECT case_id, case_name, citation, court, date, language FROM cases")
         }
@@ -180,7 +179,7 @@ def embed_query(text: str) -> np.ndarray:
 
 
 def search(query: str, *, limit: int = 10, passages_per_case: int = 2,
-           court: list[str] | None = None, level: str = "",
+           court: list[str] | None = None,
            language: str = "", date_from: str = "",
            date_to: str = "") -> dict[str, Any]:
     """Rank CASES by their best-matching chunk; return each with its top passages."""
@@ -190,13 +189,11 @@ def search(query: str, *, limit: int = 10, passages_per_case: int = 2,
 
     # Filters are applied at chunk level before ranking, so a filtered search
     # still returns `limit` cases instead of whatever survived a global top-k.
-    if court or level or language or date_from or date_to:
+    if court or language or date_from or date_to:
         courts = {c.upper() for c in (court or [])}
-        want_level = {"UC": "upper", "LC": "lower"}.get(level.upper(), "")
         ok_cases = {
             cid for cid, m in meta.items()
             if (not courts or (m["court"] or "").upper() in courts)
-            and (not want_level or m["level"] == want_level)
             and (not language or m["language"] == language)
             and (not date_from or (m["date"] or "") >= date_from)
             and (not date_to or ((m["date"] or "9999") <= date_to))

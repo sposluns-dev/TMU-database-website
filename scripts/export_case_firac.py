@@ -7,7 +7,7 @@ Writes: cases-JSON/case_firac.jsonl
 OUTPUT SHAPE — flat, one record per FIRAC block, mirroring the `case_firac` table
 1:1 so the importer is a straight field->column loop:
 
-    {"case_id":"UC1","seq":1,"issue":"…","facts":"…","rule":"…",
+    {"case_id":"JICL0001","seq":1,"issue":"…","facts":"…","rule":"…",
      "application":"…","conclusion":"…"}
 
 `seq` is the 1-based position of the block within its case (it restarts at 1 for

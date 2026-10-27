@@ -151,7 +151,7 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
   }
 
   // Name the download after the citation ("2026 YKSC 46.txt"), not the internal
-  // LC/UC id, which means nothing outside this database. Characters a filesystem
+  // JICL id, which means nothing outside this database. Characters a filesystem
   // would choke on become "-"; a case with no citation keeps the id as fallback.
   const downloadName = `${
     data?.citation?.trim().replace(/[\\/:*?"<>|]+/g, "-") || caseId
@@ -215,7 +215,7 @@ export function CaseDetail({ caseId, onClose, view = "case" }: Props) {
                 <p className="case-view-tag">Generation notes</p>
               )}
               <div className="case-idline">
-                {/* The internal LC/UC id is a database handle, not a legal
+                {/* The internal JICL id is a database handle, not a legal
                     reference, so it stays in the generation-notes view (where
                     it is useful for tracing a record) and is left off the
                     reader-facing view, which identifies a case by citation. */}

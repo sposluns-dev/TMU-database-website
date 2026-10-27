@@ -7,7 +7,7 @@ than splitting the style of cause. 76% of the corpus has such a block; the rest
 falls back to splitting `case_name` on the v/c separator.
 
 Writes cases-JSON/case_metadata_parties.jsonl with two fields per row:
-    {"case_id": "LC1", "parties": [{"name": ..., "role": ...}, ...]}
+    {"case_id": "JICL0481", "parties": [{"name": ..., "role": ...}, ...]}
 `parties` is null where nothing could be extracted (no block, no separator —
 e.g. the 122 "[no public name]" IRB records and the Quebec numbered files).
 
@@ -36,17 +36,17 @@ HEAD_CHARS = 6000          # party blocks sit at the very top; beyond this is re
 #   * rules of civil procedure — Ont. rr. 13, 14.01, 14.05, 37; BC SCCR Part 16
 #   * insolvency — BIA / CCAA statutory language
 #   * Claimant — the BC Small Claims Rules, where the party bringing the claim is
-#     the claimant, not the plaintiff (see LC387, BCPC). Note this is NOT a
+#     the claimant, not the plaintiff (see JICL0862, BCPC). Note this is NOT a
 #     translation of Quebec's "demandeur": unofficial English translations of
 #     QCCS judgments render that as "Claimant" too, and it must map to Plaintiff
-#     (LC189 was corrected for exactly this).
+#     (JICL0667 was corrected for exactly this).
 #   * Child — child-protection statutes, where the child has standing distinct
 #     from the parties: Quebec's LPJ designates l'enfant, and Ontario's CYFSA
 #     gives a child 12+ party status. There is no equivalent in the civil rules.
 # Anything outside VALID_ROLES is a bug; see the assertion in main().
 #
 # NOTE on spelling: Canadian courts and the SCC write "intervener". "Intervenor"
-# appears in older Ontario reports (e.g. LC145) and is matched, never emitted.
+# appears in older Ontario reports (e.g. JICL0623) and is matched, never emitted.
 # The label emitted follows the LANGUAGE OF THE SOURCE: an English party block
 # yields the common-law term, a French one yields the Code de procédure civile
 # term. Translating "défendeur" to "Defendant" asserts an equivalence between two
@@ -66,7 +66,7 @@ ROLES = [
     ("Responding party", r"RESPONDING PART(?:Y|IES)"),
     # Impleaded by an existing party rather than named by the plaintiff/applicant
     # (Ont. r. 29, BC SCCR Part 3 Div. 5) — a distinct rules-based role, not a
-    # synonym for Mis en cause/Intervener (LC1012).
+    # synonym for Mis en cause/Intervener (JICL1481).
     ("Third party",      r"THIRD PART(?:Y|IES)"),
     ("Intervener",       r"INTERVEN[EO]RS?|IMPLEADED PARTIES"),
     ("Accused",          r"ACCUSED"),
@@ -78,18 +78,18 @@ ROLES = [
     # Provincial offences (e.g. Workplace Safety and Insurance Act, Electricity
     # Act prosecutions) use "prosecutor" for the Crown/regulator bringing the
     # charge — the regulatory-offence equivalent of Crown, not a synonym for it
-    # (LC46, LC116, LC800-802).
+    # (JICL0525, JICL0594, JICL1272-1274).
     ("Prosecutor",       r"PROSECUTOR"),
     # Human rights regime: the person who filed the complaint is the complainant,
     # distinct from the Commission that may also be a party in its own right
-    # (LC10, LC34, LC172, LC985).
+    # (JICL0489, JICL0513, JICL0650, JICL1454).
     ("Complainant",      r"COMPLAINANTS?"),
     # Federal public-sector labour adjudication (FPSLREB and predecessor PSLRB)
-    # styles cases "grievor" v. "employer", not applicant/respondent (UC3).
+    # styles cases "grievor" v. "employer", not applicant/respondent (JICL0003).
     ("Grievor",          r"GRIEVOR"),
     ("Employer",         r"EMPLOYER"),
     # The statutory Commission itself, where it appears as a named party
-    # alongside — not instead of — the complainant (LC10, board-of-inquiry
+    # alongside — not instead of — the complainant (JICL0489, board-of-inquiry
     # style headings label this role literally "Commission").
     ("Commission",       r"COMMISSION"),
     # ── Quebec, Code de procédure civile ──
@@ -104,9 +104,9 @@ ROLES = [
     # is a recurring litigant here) name a close relative as "Interested
     # person" — notified and heard, but not a full party. Distinct from Mis en
     # cause, which the same judgments use for a different kind of third party
-    # in the identical proceeding (compare LC1023/LC1027 to LC1021/LC1022/1025/1026).
+    # in the identical proceeding (compare JICL1492/JICL1496 to JICL1490/JICL1491/1494/1495).
     # The Canadian Human Rights Tribunal uses the plural "interested parties" for
-    # the same non-party-but-participating concept (UC7) — same label, either noun.
+    # the same non-party-but-participating concept (JICL0007) — same label, either noun.
     ("Interested person", r"INTERESTED\s+PERSONS?|INTERESTED\s+PART(?:Y|IES)"),
     ("Accusé",           r"ACCUSÉE?S?"),
     ("Ministère public", r"MINIST[ÈE]RE\s+PUBLIC|POURSUIVANTE?|SA\s+MAJEST[ÉE]|LA\s+REINE|LE\s+ROI"),
@@ -130,7 +130,7 @@ VALID_ROLES = {label for label, _ in ROLES}
 # emitted by the extractor, which still maps French labels to their English
 # equivalents above. They exist for records entered by hand where the source is
 # an unofficial English translation and asserting an English role would be a
-# guess — LC189 is the case that prompted this.
+# guess — JICL0667 is the case that prompted this.
 #
 # OPEN QUESTION: this leaves "Plaintiff" and "Demandeur" both in the data meaning
 # the same thing. Either the extractor should preserve French for the 117
@@ -143,11 +143,11 @@ QUEBEC_ROLES = {
 VALID_ROLES |= QUEBEC_ROLES
 # Accepted as stored values but not emitted by the extractor:
 #   "Poursuivant" — Quebec penal/regulatory prosecutions name the prosecuting
-#   municipality or the Crown "poursuivant(e)" (LC128, LC801-802, LC891-892,
-#   LC894, LC1083). Not "Ministère public": a ville poursuivante is not the
+#   municipality or the Crown "poursuivant(e)" (JICL0606, JICL1273-1274, JICL1361-1362,
+#   JICL1364, JICL1552). Not "Ministère public": a ville poursuivante is not the
 #   state prosecution service.
 #   "Party" — board-of-inquiry captions that designate participants simply as
-#   parties, with no procedural side (LC10).
+#   parties, with no procedural side (JICL0489).
 VALID_ROLES |= {"Poursuivant", "Party"}
 # A role line may carry a qualifier: "APPELLANTS – Intervenors", "RESPONDENT/Defendant".
 ROLE_LINE = re.compile(
@@ -172,7 +172,7 @@ DATEISH = re.compile(r"^\W*\d[\d\s\-–—/·,:.]*\W*$")
 # A line ending in a judicial suffix is a member of the panel, not a party. The
 # CORAM block in Quebec Court of Appeal judgments sits directly above the party
 # block in the same upper case, so without this the walk climbs straight through
-# it and records the judges as appellants (LC42 recorded Hilton, Dutil and Bich).
+# it and records the judges as appellants (JICL0521 recorded Hilton, Dutil and Bich).
 # "CORAM:"/"THE HONOURABLE" are already in NOISE, but the judge NAME lines are not.
 JUDGE_LINE = re.compile(
     r",?\s*(?:JJ?\.?\s?[ACQS]?\.?|C\.?J\.?[ACQS]?\.?|J\.?C\.?[ASQ]\.?|J\.?S\.?C\.?)\s*$")
@@ -252,7 +252,7 @@ def join_wrapped(block: list[str]) -> str:
     shatters them. Only the explicit separators — commas and "and" — are trusted,
     which is why blocks are space-joined here. The cost is that genuinely separate
     parties listed on their own lines with no punctuation merge into one string;
-    LC2's interveners are the example. See the note in the module docstring.
+    JICL0482's interveners are the example. See the note in the module docstring.
     """
     return " ".join(block)
 
@@ -303,7 +303,7 @@ def from_between_block(text: str) -> list[dict]:
 # ── Anonymisation guard ───────────────────────────────────────────────────
 # Where a court has withheld identities — by statute or by publication ban —
 # the judgment body is NOT a safe source of party names: it may carry names the
-# style of cause deliberately omits (see LC92, where a s. 126.2 identification
+# style of cause deliberately omits (see JICL0570, where a s. 126.2 identification
 # ban applies and the body still names the judge, witnesses and third parties).
 # These cases fall back to the style of cause, which is already anonymised, and
 # are written to the review file for a human pass.
@@ -368,7 +368,7 @@ def main() -> None:
     for p in glob.glob(os.path.join(CASES, "upper-JSON", "*.json")) + \
              glob.glob(os.path.join(CASES, "lower-JSON", "*.json")):
         paths[os.path.basename(p)[:-5]] = p
-    ids = sorted(paths, key=lambda s: (0 if s.startswith("LC") else 1, int(re.sub(r"\D", "", s))))
+    ids = sorted(paths, key=lambda s: int(re.sub(r"\D", "", s)))
     todo = ({i.strip() for i in args.only.split(',') if i.strip()} if args.only
             else set(ids if args.all else ids[args.start: args.start + args.limit]))
 
@@ -387,7 +387,7 @@ def main() -> None:
             "CASES REQUIRING ANONYMISATION REVIEW\n"
             "Party names were NOT read from the judgment body for these cases; the\n"
             "already-anonymised style of cause was used instead. Each needs a human\n"
-            "pass to confirm nothing identifying was recorded (cf. LC92).\n"
+            "pass to confirm nothing identifying was recorded (cf. JICL0570).\n"
             + "=" * 78 + "\n\n")
         review.flush()
 

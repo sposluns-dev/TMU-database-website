@@ -16,9 +16,9 @@
 //  • § 3.3 normalization is MECHANICAL only (punctuation, `et al`, leading
 //    articles, separator). § 3.3.8 (The Queen → R, 15 records) and § 3.3.9
 //    (Attorney General → AG, 61 records) are NOT applied. Enabling them needs
-//    a guard for LC172 "Regina (City) v Kivela", where Regina is the city.
+//    a guard for JICL0650 "Regina (City) v Kivela", where Regina is the city.
 //  • § 3.3.1's "omit given names and first initials" is not mechanised —
-//    surname vs given name is not decidable from the stored string (LC722
+//    surname vs given name is not decidable from the stored string (JICL1195
 //    "John C Chaplin" survives as-is).
 //  • §§ 3.6 (pinpoint), 3.10 (judge), 3.11 (history) are unimplementable: the
 //    schema stores no pinpoint, judge or appeal-history field.
@@ -191,8 +191,8 @@ export function styleOfCause(
   s = s.replace(/^(?:The|Le|La|Les)\s+/, "").replace(/^L'\s*/, "");
 
   // Separator, first occurrence only. Uppercase `C` is excluded because a lone
-  // capital C is an initial (LC722 "John C Chaplin"), whereas the French
-  // separator is always lowercase. Uppercase V *is* accepted — LC826 and LC202
+  // capital C is an initial (JICL1195 "John C Chaplin"), whereas the French
+  // separator is always lowercase. Uppercase V *is* accepted — JICL1298 and JICL0680
   // are typos in the source data, not a citation variant.
   // No match is normal, not an error: 207 records are non-adversarial
   // ("Mahjoub (Re)", "Droit de la famille — 212670") and have no separator.
@@ -294,7 +294,7 @@ export function mcgillCitation(
     main = raw;
   } else if (repVol) {
     // § 3.7.1 volume-numbered era: the year belongs after the style of cause
-    // (§ 3.4), not inside the citation. UC479 "(1912) 46 SCR 132".
+    // (§ 3.4), not inside the citation. JICL0479 "(1912) 46 SCR 132".
     form = "reporter";
     year = repVol[1];
     main = `${repVol[2]} ${repVol[3]} ${repVol[4]}`;

@@ -1,0 +1,4 @@
+# Same pins as server/requirements.txt (see the note there on why they move together).
+fastapi==0.141.1
+uvicorn[standard]==0.52.3
+httpx==0.28.1

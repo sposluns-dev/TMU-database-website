@@ -839,7 +839,7 @@ def build_query(q: str, expand: bool = True) -> tuple[str | None, list[str]]:
 def build_filters(
     courts: list[str], provinces: list[str], practice_areas: list[str],
     keywords: list[str], keyword_mode: str, language: str | None,
-    level: str | None, date_from: str | None, date_to: str | None,
+    date_from: str | None, date_to: str | None,
     keyword_groups: list[str] | None = None,
     name_q: str = "",
 ) -> tuple[list[str], list]:
@@ -902,9 +902,6 @@ def build_filters(
     if language:
         where.append("c.language = ?")
         params.append(language)
-    if level in ("UC", "LC"):
-        where.append("c.case_id LIKE ?")
-        params.append(f"{level}%")
     if date_from:
         where.append("c.date >= ?")
         params.append(date_from)
@@ -960,7 +957,6 @@ def shape(row: sqlite3.Row, rank: int, conn: sqlite3.Connection) -> dict:
     d["snippet"] = excerpt
     d["excerpt"] = excerpt
     d["rank"] = rank          # positional; the current frontend keys results on it
-    d["level"] = "upper" if str(d["case_id"]).startswith("UC") else "lower"
     d["keywords"] = [k["en"] for k in kw]
     d["mots_cles"] = [k["fr"] for k in kw if k["fr"]]
     d["keyword_ids"] = [k["keyword_id"] for k in kw]
@@ -1045,7 +1041,7 @@ B_EXACT = 5_000.0
 # search for. A DF cutoff cannot tell structural noise from a frequent real party.
 #
 # "re" is deliberately EXCLUDED: it is a legal term of art (Re Zundel, Moore Estate
-# (Re)), and including it made LC417 "A. S., Re" — whose name is nothing but
+# (Re)), and including it made JICL0892 "A. S., Re" — whose name is nothing but
 # a, s, re — impossible to search for. Verified: with the list as it stands, zero
 # of the 1,587 case names consist solely of stop words.
 STOP_WORDS = frozenset("""
@@ -1794,7 +1790,6 @@ def search(
     keyword_mode: str = Query("or", pattern="^(and|or)$"),
     keyword_group: list[str] = Query([]),
     language: str | None = Query(None, pattern="^(en|fr)$"),
-    level: str | None = Query(None, pattern="^(UC|LC)$"),
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
     sort: str = Query("relevance", pattern="^(relevance|date_desc|date_asc|name)$"),
@@ -1913,7 +1908,7 @@ def search(
 
     mode = "browse" if not toks else "search"
     where, fparams = build_filters(court, province, practice_area, keyword,
-                                   keyword_mode, language, level, date_from, date_to,
+                                   keyword_mode, language, date_from, date_to,
                                    keyword_group, name_q)
     filt = "WHERE " + " AND ".join(where) if where else ""
 
@@ -2060,7 +2055,6 @@ def case(case_id: str, include_text: bool = True, include_firac: bool = True):
     d = dict(row)
     kw = resolve_keywords(conn, d.pop("keyword_ids", None))
     d["keywords"] = kw
-    d["level"] = "upper" if case_id.startswith("UC") else "lower"
     try:
         d["defining_issues"] = json.loads(d.get("defining_issues") or "[]")
     except json.JSONDecodeError:
@@ -2118,10 +2112,6 @@ def _facets() -> dict:
         "provinces": group("SELECT province, COUNT(*) n FROM case_metadata GROUP BY 1 ORDER BY n DESC"),
         "practice_areas": group("SELECT practice_area, COUNT(*) n FROM case_metadata GROUP BY 1 ORDER BY n DESC"),
         "languages": group("SELECT language, COUNT(*) n FROM cases GROUP BY 1 ORDER BY n DESC"),
-        "levels": [
-            {"value": "upper", "count": conn.execute("SELECT COUNT(*) FROM cases WHERE case_id LIKE 'UC%'").fetchone()[0]},
-            {"value": "lower", "count": conn.execute("SELECT COUNT(*) FROM cases WHERE case_id LIKE 'LC%'").fetchone()[0]},
-        ],
         "year_min": years[0], "year_max": years[1],
     }
 

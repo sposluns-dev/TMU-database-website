@@ -1,0 +1,7 @@
+# Controls what `gcloud run deploy --source .` uploads to Cloud Build.
+# The deploy script itself is not needed inside the build.
+deploy-gcs.sh
+.gcloudignore
+__pycache__/
+*.pyc
+.DS_Store

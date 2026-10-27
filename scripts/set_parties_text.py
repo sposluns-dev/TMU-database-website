@@ -69,7 +69,7 @@ def main() -> None:
     ap.add_argument("--sep", default=" | ", help="separator between names (default ' | ')")
     ap.add_argument("--dedupe", action="store_true",
                     help="drop a name already seen on the same case "
-                         "(10 cases repeat a name; LC2 repeats 27)")
+                         "(10 cases repeat a name; JICL0482 repeats 27)")
     ap.add_argument("--dry-run", action="store_true",
                     help="print what would change, write nothing")
     args = ap.parse_args()

@@ -22,12 +22,12 @@ Two output files are written:
 
 Usage:
     python3 scripts/tag_cases.py --limit 3            # sync test run on 3 cases (standard price)
-    python3 scripts/tag_cases.py --ids UC1,UC2        # specific cases
+    python3 scripts/tag_cases.py --ids JICL0001,JICL0002  # specific cases
     python3 scripts/tag_cases.py --court upper        # all upper-court cases
     python3 scripts/tag_cases.py --batch --court upper  # Batch API (50% cheaper, async)
     python3 scripts/tag_cases.py --batch              # everything via batch (resumes automatically)
     python3 scripts/tag_cases.py --effort medium ...  # trade quality for cost (default: high)
-    python3 scripts/tag_cases.py --dry-run --ids UC1  # print the prompt, no API call
+    python3 scripts/tag_cases.py --dry-run --ids JICL0001  # print the prompt, no API call
 
 Sync mode returns per-case results in seconds (good for smoke tests); batch mode
 submits everything as async jobs at 50% price but can take up to a few hours and
@@ -286,9 +286,9 @@ def case_user_message(case: dict) -> str:
 def iter_case_files(court: str) -> list[Path]:
     files = []
     if court in ("upper", "both"):
-        files += sorted(UPPER_DIR.glob("UC*.json"), key=lambda p: int(p.stem[2:]))
+        files += sorted(UPPER_DIR.glob("JICL*.json"), key=lambda p: int(p.stem[4:]))
     if court in ("lower", "both"):
-        files += sorted(LOWER_DIR.glob("LC*.json"), key=lambda p: int(p.stem[2:]))
+        files += sorted(LOWER_DIR.glob("JICL*.json"), key=lambda p: int(p.stem[4:]))
     return files
 
 
@@ -519,7 +519,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--court", choices=["upper", "lower", "both"], default="both")
     ap.add_argument("--limit", type=int, default=None, help="stop after N cases (test runs)")
-    ap.add_argument("--ids", default=None, help="comma-separated case IDs, e.g. UC1,UC2,LC10")
+    ap.add_argument("--ids", default=None, help="comma-separated case IDs, e.g. JICL0001,JICL0002")
     ap.add_argument("--batch", action="store_true",
                     help="use the Batch API (50%% cheaper, async — results in up to a few hours)")
     ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high",

@@ -1,0 +1,6 @@
+# Controls what `gcloud run deploy --source .` uploads to Cloud Build.
+deploy-web.sh
+.gcloudignore
+__pycache__/
+*.pyc
+.DS_Store

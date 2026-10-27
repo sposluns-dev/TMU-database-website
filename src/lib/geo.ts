@@ -67,11 +67,3 @@ export function placeLabel(
 export function registryLabel(lang: Lang): string {
   return lang === "fr" ? "Greffe\u202f:" : "Registry:";
 }
-
-/** Court level badge, which sits in the same header block. */
-export function levelLabel(level: string | null | undefined, lang: Lang): string {
-  if (lang === "fr") {
-    return level === "upper" ? "Cour supérieure" : "Cour inférieure";
-  }
-  return level === "upper" ? "Upper court" : "Lower court";
-}

@@ -17,7 +17,7 @@ export interface CaseMeta {
   legal_area?: string;
 
   // ── Served by the API (server/app.py); absent on the legacy static index ──
-  case_id?: string; // "UC13" / "LC1" — the real, stable identifier
+  case_id?: string; // "JICL0013" — the real, stable identifier
   practice_area?: string; // the single primary tier-1 area
   keywords?: string[]; // controlled vocabulary, English canonical
   mots_cles?: string[]; // the same terms in French
@@ -25,7 +25,6 @@ export interface CaseMeta {
   summary?: string; // AI-generated (English)
   resume?: string; // AI-generated (French)
   language?: string; // 'en' | 'fr'
-  level?: "upper" | "lower";
   relevance?: number; // hybrid BM25 + tag-boost score
   /** Which priority placed this result; "family" = promoted via a sibling record. */
   matched?: "case_name" | "parties" | "text" | "family";

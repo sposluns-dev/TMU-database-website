@@ -104,7 +104,7 @@ async def _get(endpoint: str, params: dict[str, Any] | None = None) -> Any:
     an MCP tool that raises gives the model nothing to reason about."""
     # Drop only *absent* values. `False` must survive: the API defaults
     # include_text to True, so silently dropping include_text=False returns a
-    # whole judgment — 322k characters for LC1, 1.5M for LC66.
+    # whole judgment — 322k characters for JICL0481, 1.5M for JICL0545.
     clean = {k: v for k, v in (params or {}).items()
              if v is not None and v != "" and v != []}
     try:
@@ -139,7 +139,6 @@ def _trim_hit(r: dict[str, Any], concise: bool = False) -> dict[str, Any]:
         "citation": r.get("citation"),
         "court": r.get("court"),
         "date": r.get("date"),
-        "level": r.get("level"),
     }
     if concise:
         return head
@@ -163,7 +162,6 @@ async def search_cases(
     court: str = "",
     province: str = "",
     practice_area: str = "",
-    level: Literal["", "UC", "LC"] = "",
     language: Literal["", "en", "fr"] = "",
     date_from: str = "",
     date_to: str = "",
@@ -215,14 +213,13 @@ async def search_cases(
         court: Comma-separated court codes, e.g. "SCC,ONCA". See dataset_coverage.
         province: Comma-separated province codes, e.g. "ON,QC".
         practice_area: Comma-separated areas, e.g. "Family law,Human rights".
-        level: "UC" for upper-court decisions, "LC" for lower court, "" for both.
         language: "en" or "fr" to restrict by judgment language.
         date_from: Earliest decision date, YYYY-MM-DD.
         date_to: Latest decision date, YYYY-MM-DD.
         sort: "relevance" (default), "date_desc", "date_asc", or "name".
         limit: Results to return, 1-25 (default 10).
         offset: Skip this many results, for paging through `total`.
-        concise: Return only case_id, name, citation, court, date, level —
+        concise: Return only case_id, name, citation, court, date —
             no snippets, summaries, or keywords. Roughly a tenth of the size.
             Use it when scanning many results or checking whether something
             exists; follow up with get_case for anything that looks relevant.
@@ -250,7 +247,6 @@ async def search_cases(
         "province": csv(province),
         "practice_area": csv(practice_area),
         "keyword": csv(keyword_ids),
-        "level": level or None,
         "language": language or None,
         "date_from": date_from or None,
         "date_to": date_to or None,
@@ -288,7 +284,7 @@ async def get_case(
     include_firac: bool = True,
 ) -> dict[str, Any]:
     """
-    Retrieve one decision by case_id (e.g. "UC16", "LC1"), with metadata, parties,
+    Retrieve one decision by case_id (e.g. "JICL0016", "JICL0481"), with metadata, parties,
     curated summary, and structured FIRAC analysis.
 
     FULL TEXT IS OFF BY DEFAULT and windowed when on. These are real judgments —
@@ -307,12 +303,12 @@ async def get_case(
 
     COST, measured: ~3.6k tokens for metadata + summary + FIRAC with no text.
     Text adds max_chars/4 on top — ~3k at the 12,000 default, ~10k at the 40,000
-    ceiling. For scale, LC1's full judgment is 322k characters (~81k tokens) and
-    LC66 is 1.5M (~384k), so never ask for a whole one.
+    ceiling. For scale, JICL0481's full judgment is 322k characters (~81k tokens) and
+    JICL0545 is 1.5M (~384k), so never ask for a whole one.
 
     Args:
-        case_id: Identifier from search_cases, e.g. "UC16" (upper court) or
-            "LC1" (lower court). Not a citation — use search_cases with
+        case_id: Identifier from search_cases, e.g. "JICL0016" or
+            "JICL0481". Not a citation — use search_cases with
             name_or_citation to turn a citation into a case_id.
         include_text: Return a window of the judgment text. Default False.
         start_char: Character offset to start the text window at. Use with
@@ -329,8 +325,8 @@ async def get_case(
 
     Response size, measured: ~3.6k tokens with metadata, summary and FIRAC and no
     text. Text adds max_chars/4 on top — ~3k at the 12,000 default, ~10k at the
-    40,000 ceiling. For reference, LC1's full judgment is 322k characters (~81k
-    tokens) and Dieleman is not even the longest; LC66 is 1.5M (~384k).
+    40,000 ceiling. For reference, JICL0481's full judgment is 322k characters (~81k
+    tokens) and Dieleman is not even the longest; JICL0545 is 1.5M (~384k).
     """
     data = await _get(
         f"/case/{case_id}",
@@ -425,7 +421,7 @@ async def dataset_coverage() -> dict[str, Any]:
 
     Returns:
         {description, total_cases, year_min, year_max, courts[], provinces[],
-         practice_areas[], languages[], levels[]}
+         practice_areas[], languages[]}
     """
     data = await _get("/facets")
     if isinstance(data, dict) and "error" in data:
@@ -438,7 +434,6 @@ async def dataset_coverage() -> dict[str, Any]:
 async def semantic_search(
     query: str,
     court: str = "",
-    level: Literal["", "UC", "LC"] = "",
     language: Literal["", "en", "fr"] = "",
     date_from: str = "",
     date_to: str = "",
@@ -473,7 +468,6 @@ async def semantic_search(
         query: What you are looking for, in plain English or French. A full
             sentence works better than keywords.
         court: Comma-separated court codes, e.g. "SCC,ONCA". See dataset_coverage.
-        level: "UC" for upper-court decisions, "LC" for lower court, "" for both.
         language: "en" or "fr" to restrict by judgment language.
         date_from: Earliest decision date, YYYY-MM-DD.
         date_to: Latest decision date, YYYY-MM-DD.
@@ -497,7 +491,7 @@ async def semantic_search(
             limit=max(1, min(limit, MAX_RESULTS)),
             passages_per_case=max(1, min(passages_per_case, 3)),
             court=[c.strip() for c in court.split(",") if c.strip()],
-            level=level, language=language,
+            language=language,
             date_from=date_from, date_to=date_to,
         )
 

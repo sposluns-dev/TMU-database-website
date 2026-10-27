@@ -28,7 +28,7 @@ import { CaseDetail } from "./CaseDetail";
 import type { CasesIndex, Filters, MatchMode, SearchResult } from "../lib/types";
 import "../styles/components/search.css";
 
-// Stable identity for a result. The API returns the real case_id ("UC13"); the
+// Stable identity for a result. The API returns the real case_id ("JICL0013"); the
 // legacy static index only has a positional rank, so fall back to it.
 const idOf = (r: SearchResult) => r.case_id ?? String(r.rank);
 
